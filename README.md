@@ -4,7 +4,6 @@
 
 # 📚 Krishna Library Student
 
-"Library" (https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=1200)
 
 ## 🎯 About Project
 
@@ -66,11 +65,10 @@ Krishna Library Student is a student management and attendance system designed f
 
 ---
 
-📌 Project Status
 
-Current Status:
+# Current Status:
 
-Planning & Development Phase
+*Planning & Development Phase*
 
 ---
 
