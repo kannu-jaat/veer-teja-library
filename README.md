@@ -2,15 +2,15 @@
 <img src='https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=1200' height=150  >
 </p>
 
-📚 Krishna Library Student
+# 📚 Krishna Library Student
 
 "Library" (https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=1200)
 
-🎯 About Project
+## 🎯 About Project
 
 Krishna Library Student is a student management and attendance system designed for libraries and study centers.
 
-The project includes:
+## The project includes:
 
 - Student Registration
 - Admin Approval System
@@ -26,9 +26,9 @@ The project includes:
 
 ---
 
-🚀 Planned Features
+# 🚀 Planned Features
 
-Student App
+## Student App
 
 - Login & Registration
 - Admin Approval
@@ -42,7 +42,7 @@ Student App
 - Popup Notices
 - Profile Management
 
-Admin App
+## Admin App
 
 - Student Approval
 - Attendance Management
@@ -55,7 +55,7 @@ Admin App
 
 ---
 
-🛠 Technology Stack
+## 🛠 Technology Stack
 
 - HTML
 - CSS
@@ -63,24 +63,6 @@ Admin App
 - Firebase Realtime Database
 - Firebase Storage
 - Firebase Cloud Messaging
-
----
-
-📂 Project Structure
-
-assets/
-├── css/
-├── js/
-├── images/
-
-pages/
-├── login.html
-├── register.html
-├── attendance.html
-├── profile.html
-
-index.html
-README.md
 
 ---
 
@@ -92,12 +74,10 @@ Planning & Development Phase
 
 ---
 
-👨‍💻 Developer
-
-Krishna Library Team
+## 👨‍💻 Developer - Kannu Jaat
 
 ---
 
-📄 License
+## 📄 License
 
 This project is developed for educational and library management purposes.
