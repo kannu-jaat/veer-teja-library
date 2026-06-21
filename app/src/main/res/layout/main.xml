@@ -18,7 +18,6 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/splashTitle"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="30dp"
-        android:theme="@style/Widget.AppCompat.ProgressBar" />
+        android:layout_marginTop="30dp" />
 
 </RelativeLayout>
