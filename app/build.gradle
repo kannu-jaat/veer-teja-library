@@ -23,7 +23,16 @@ android {
 dependencies {
     // Add your dependencies here
     implementation 'androidx.webkit:webkit:1.12.0'
+
+    // --- Firebase Dependencies Start ---
+    // Firebase BoM (Yeh versions ko aapas me crash hone se bachata hai)
+    implementation platform('com.google.firebase:firebase-bom:32.8.0')
+    
+    // Library App ke features ke liye packages
+    implementation 'com.google.firebase:firebase-database'
+    implementation 'com.google.firebase:firebase-messaging'
+    // --- Firebase Dependencies End ---
 }
 
-
-
+// Yeh line hamesha file ke sabse aakhiri me honi chahiye
+apply plugin: 'com.google.gms.google-services'
