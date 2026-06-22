@@ -37,16 +37,15 @@ public class LoginActivity extends Activity {
         tvRegister = findViewById(R.id.tvRegister);
         tvForgotPassword = findViewById(R.id.tvForgotPassword);
 
-        // Naya Account Banane Ke Liye
+        // 🚀 forword to registration screen 
         tvRegister.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
-                Toast.makeText(LoginActivity.this, "Registration Screen aayegi!", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
             }
         });
 
-        // Forgot Password Logic (Admin ko request)
+        // Forgot Password Logic
         tvForgotPassword.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -89,8 +88,10 @@ public class LoginActivity extends Activity {
                                  .apply();
                             
                             Toast.makeText(LoginActivity.this, "Login Successful!", Toast.LENGTH_SHORT).show();
+                            
+                            // 🚀 RASTA KHUL GAYA: Login Pass Hone Par Dashboard Par Bhejna
                             startActivity(new Intent(LoginActivity.this, DashboardActivity.class));
-                            finish();
+                            finish(); // Login screen ko band kar do taaki back aane par dobara na dikhe
                         } else {
                             Toast.makeText(LoginActivity.this, "Account Pending Approval from Admin.", Toast.LENGTH_LONG).show();
                         }
