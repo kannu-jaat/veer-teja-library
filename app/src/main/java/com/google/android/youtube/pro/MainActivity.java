@@ -18,18 +18,25 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        // Animation ka Jadoo
+        // UI Elements
         TextView splashTitle = findViewById(R.id.splashTitle);
-        splashTitle.setAlpha(0f); // Pehle chhupa do
-        splashTitle.setTranslationY(50); // Thoda niche set karo
         
-        // 1.5 seconds me upar aakar dikhega
-        splashTitle.animate().alpha(1f).translationY(0).setDuration(1500).start();
+        // 1. AppConfig se naam automatically yahan set hoga (Ek file, poora app update)
+        if (splashTitle != null) {
+            splashTitle.setText(AppConfig.LIBRARY_NAME);
+
+            // Animation ka Jadoo
+            splashTitle.setAlpha(0f); 
+            splashTitle.setTranslationY(50); 
+            splashTitle.animate().alpha(1f).translationY(0).setDuration(1500).start();
+        }
 
         prefs = getSharedPreferences("LibraryApp", Context.MODE_PRIVATE);
+        
+        // Background notification service start
         startNotificationService();
 
-        // 2.5 Second ka timer (2500 milliseconds)
+        // 2.5 Second ka timer
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -39,26 +46,32 @@ public class MainActivity extends Activity {
     }
 
     private void startNotificationService() {
-        Intent serviceIntent = new Intent(this, ForegroundService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
-        } else {
-            startService(serviceIntent);
+        try {
+            Intent serviceIntent = new Intent(this, ForegroundService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+        } catch (Exception e) {
+            e.printStackTrace(); // Safe catch jisse background restriction se crash na ho
         }
     }
 
     private void checkLoginStatus() {
         boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
-        
+
         if (isLoggedIn) {
-            // Agar pehle se login hai toh Dashboard par jayega (Aage banayenge)
-            // Intent intent = new Intent(MainActivity.this, DashboardActivity.class);
-            // startActivity(intent);
+            // ✅ CRASH FIXED: Ab agar login hai, toh sidha Dashboard jayega (Comment hata diya hai)
+            Intent intent = new Intent(MainActivity.this, DashboardActivity.class);
+            startActivity(intent);
         } else {
             // Naya user hai toh Login Screen par bhej do
             Intent intent = new Intent(MainActivity.this, LoginActivity.class);
             startActivity(intent);
         }
-        finish(); // Splash screen ko hamesha ke liye band kar do taaki back dabane par wapas na aaye
+        
+        // Splash screen ko hamesha ke liye band kar do taaki back dabane par wapas na aaye
+        finish(); 
     }
 }
