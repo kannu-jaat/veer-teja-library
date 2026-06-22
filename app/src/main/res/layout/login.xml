@@ -13,22 +13,22 @@
         android:padding="24dp">
 
         <TextView
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:layout_width="65dp"
+            android:layout_height="65dp"
             android:layout_marginTop="30dp"
             android:background="@drawable/glass_card"
             android:gravity="center"
             android:text="📖"
-            android:textSize="40sp" />
+            android:textSize="32sp" />
 
         <TextView
             android:id="@+id/tvLoginLibName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="15dp"
+            android:layout_marginTop="10dp"
             android:text="Library Name"
             android:textColor="#FFFFFF"
-            android:textSize="28sp"
+            android:textSize="26sp"
             android:textStyle="bold" />
 
         <TextView
@@ -36,53 +36,83 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
-            android:text="Tagline here"
+            android:text="Smart Attendance • Easy Learning"
             android:textColor="#94A3B8"
-            android:textSize="14sp" />
+            android:textSize="12sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
+            android:layout_marginTop="35dp"
             android:text="Welcome Back!"
             android:textColor="#FFFFFF"
-            android:textSize="22sp"
+            android:textSize="20sp"
             android:textStyle="bold" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="30dp"
+            android:layout_marginBottom="35dp"
             android:text="Login to continue to your account"
             android:textColor="#94A3B8"
             android:textSize="14sp" />
 
-        <EditText
-            android:id="@+id/etUsername"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:layout_marginBottom="15dp"
-            android:background="@drawable/bg_input_neon"
-            android:drawableLeft="@android:drawable/ic_menu_myplaces"
-            android:drawablePadding="15dp"
-            android:hint="Username"
-            android:padding="15dp"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#94A3B8" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="20dp">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Username"
+                android:textColor="#3B82F6" 
+                android:textSize="12sp"
+                android:layout_marginLeft="5dp"
+                android:layout_marginBottom="6dp"/>
+                
+            <EditText
+                android:id="@+id/etUsername"
+                android:layout_width="match_parent"
+                android:layout_height="55dp"
+                android:background="@drawable/bg_input_neon"
+                android:drawableLeft="@android:drawable/ic_menu_myplaces"
+                android:drawablePadding="15dp"
+                android:padding="15dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#475569"
+                android:singleLine="true"/>
+        </LinearLayout>
 
-        <EditText
-            android:id="@+id/etPassword"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:layout_marginBottom="10dp"
-            android:background="@drawable/bg_input_neon"
-            android:drawableLeft="@android:drawable/ic_secure"
-            android:drawablePadding="15dp"
-            android:hint="Password"
-            android:inputType="textPassword"
-            android:padding="15dp"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#94A3B8" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="15dp">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Password"
+                android:textColor="#8E2DE2" 
+                android:textSize="12sp"
+                android:layout_marginLeft="5dp"
+                android:layout_marginBottom="6dp"/>
+                
+            <EditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="55dp"
+                android:background="@drawable/bg_input_neon"
+                android:drawableLeft="@android:drawable/ic_secure"
+                android:drawablePadding="15dp"
+                android:inputType="textPassword"
+                android:padding="15dp"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#475569"
+                android:singleLine="true"/>
+        </LinearLayout>
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -94,7 +124,9 @@
                 android:layout_height="wrap_content"
                 android:text="Remember me"
                 android:textColor="#94A3B8"
-                android:buttonTint="#8E2DE2"/>
+                android:textSize="13sp"
+                android:buttonTint="#8E2DE2"
+                android:layout_centerVertical="true"/>
 
             <TextView
                 android:id="@+id/tvForgotPassword"
@@ -104,6 +136,7 @@
                 android:layout_centerVertical="true"
                 android:text="Forgot Password?"
                 android:textColor="#8E2DE2"
+                android:textSize="13sp"
                 android:textStyle="bold" />
         </RelativeLayout>
 
@@ -112,35 +145,50 @@
             android:layout_width="match_parent"
             android:layout_height="55dp"
             android:background="@drawable/bg_btn_gradient"
-            android:text="LOGIN"
+            android:text="Login   →"
             android:textColor="#FFFFFF"
-            android:textSize="18sp"
+            android:textSize="16sp"
             android:textStyle="bold"
-            android:layout_marginBottom="30dp"/>
+            android:layout_marginBottom="30dp"
+            android:textAllCaps="false"/>
 
-        <TextView
-            android:id="@+id/tvRegister"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Don't have an account? Register Now"
-            android:textColor="#94A3B8"
-            android:textSize="15sp"
-            android:layout_marginBottom="30dp"/>
+            android:orientation="horizontal"
+            android:layout_marginBottom="35dp">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Don't have an account? "
+                android:textColor="#94A3B8"
+                android:textSize="14sp"/>
+                
+            <TextView
+                android:id="@+id/tvRegister"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Register Now"
+                android:textColor="#3B82F6"
+                android:textSize="14sp"
+                android:textStyle="bold"/>
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/glass_card"
             android:orientation="horizontal"
-            android:padding="15dp"
+            android:padding="16dp"
             android:gravity="center_vertical">
             
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="🛡️"
-                android:textSize="24sp"
-                android:layout_marginRight="10dp"/>
+                android:textSize="22sp"
+                android:layout_marginRight="15dp"/>
                 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -150,15 +198,16 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Your data is safe with us."
-                    android:textColor="#FFFFFF"
+                    android:textColor="#E2E8F0"
                     android:textStyle="bold"
-                    android:textSize="14sp"/>
+                    android:textSize="13sp"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="We never share your information."
-                    android:textColor="#94A3B8"
-                    android:textSize="12sp"/>
+                    android:textColor="#64748B"
+                    android:textSize="11sp"
+                    android:layout_marginTop="2dp"/>
             </LinearLayout>
         </LinearLayout>
 
