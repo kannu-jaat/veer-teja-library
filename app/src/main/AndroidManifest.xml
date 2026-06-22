@@ -42,6 +42,8 @@
             android:screenOrientation="portrait"/>
         
         <activity android:name=".RegisterActivity" android:screenOrientation="portrait"/>
+
+        <activity android:name=".DashboardActivity" android:screenOrientation="portrait"/>
         
 
         <!-- 3. BACKGROUND NOTIFICATION SERVICE -->
