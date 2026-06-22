@@ -2,47 +2,71 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:background="#F4F6F9"
     android:gravity="center"
-    android:padding="20dp"
-    android:background="#FFFFFF">
+    android:orientation="vertical"
+    android:padding="30dp">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Login to Library"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:textColor="#000000"
-        android:layout_marginBottom="30dp"/>
+        android:layout_marginBottom="40dp"
+        android:text="Student Login"
+        android:textColor="#1A1A2E"
+        android:textSize="32sp"
+        android:textStyle="bold" />
 
     <EditText
-        android:id="@+id/etMobile"
+        android:id="@+id/etUsername"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Mobile Number"
-        android:inputType="phone"
+        android:layout_height="55dp"
+        android:layout_marginBottom="15dp"
+        android:background="#FFFFFF"
+        android:hint="Username / Mobile"
         android:padding="15dp"
-        android:background="#EAEAEA"
-        android:layout_marginBottom="15dp"/>
+        android:textColor="#000000"
+        android:textColorHint="#888888" />
 
     <EditText
         android:id="@+id/etPassword"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="55dp"
+        android:layout_marginBottom="10dp"
+        android:background="#FFFFFF"
         android:hint="Password"
         android:inputType="textPassword"
         android:padding="15dp"
-        android:background="#EAEAEA"
-        android:layout_marginBottom="25dp"/>
+        android:textColor="#000000"
+        android:textColorHint="#888888" />
+
+    <TextView
+        android:id="@+id/tvForgotPassword"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="30dp"
+        android:gravity="right"
+        android:text="Forgot Password?"
+        android:textColor="#E94560"
+        android:textStyle="bold" />
 
     <Button
         android:id="@+id/btnLogin"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="55dp"
+        android:layout_marginBottom="20dp"
+        android:backgroundTint="#1A1A2E"
         android:text="LOGIN"
-        android:backgroundTint="#E94560"
         android:textColor="#FFFFFF"
-        android:padding="15dp"/>
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvRegister"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Student? Request Account"
+        android:textColor="#1A1A2E"
+        android:textSize="16sp"
+        android:textStyle="bold" />
 
 </LinearLayout>
