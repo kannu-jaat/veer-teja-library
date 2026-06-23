@@ -51,10 +51,11 @@ public class LoginActivity extends Activity {
             }
         });
 
-        tvForgotPassword.setOnClickListener(new View.OnClickListener() {
+       tvForgotPassword.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(LoginActivity.this, "Request sent to Admin for Password Reset.", Toast.LENGTH_LONG).show();
+                // Rasta Khul Gaya: Nayi Forgot Password Activity par bhejega
+                startActivity(new Intent(LoginActivity.this, ForgotPasswordActivity.class));
             }
         });
 
