@@ -1,12 +1,18 @@
 package com.google.android.youtube.pro;
 
 import android.app.Activity;
+import android.app.Dialog;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -31,84 +37,109 @@ public class ForgotPasswordActivity extends Activity {
         btnResetRequest = findViewById(R.id.btnResetRequest);
         tvBackToLoginForgot = findViewById(R.id.tvBackToLoginForgot);
 
-        // Wapas Login Screen Par Jaane Ke Liye
-        tvBackToLoginForgot.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                finish(); 
-            }
-        });
+        tvBackToLoginForgot.setOnClickListener(v -> finish());
 
-        // Submit Button Click Listener
-        btnResetRequest.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String username = etForgotUsername.getText().toString().trim();
-                if (username.isEmpty()) {
-                    Toast.makeText(ForgotPasswordActivity.this, "Please enter your username", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                // Smart Verification Method
-                checkUserAndSendRequest(username);
+        btnResetRequest.setOnClickListener(v -> {
+            String username = etForgotUsername.getText().toString().trim();
+            if (username.isEmpty()) {
+                showCustomAlert("Please enter your username", true);
+                return;
             }
+            checkAndSendRequest(username);
         });
     }
 
-    private void checkUserAndSendRequest(final String username) {
-        btnResetRequest.setText("Verifying...");
-        btnResetRequest.setEnabled(false); // Baar baar click hone se bachane ke liye
+    private void checkAndSendRequest(final String username) {
+        btnResetRequest.setText("Checking...");
+        btnResetRequest.setEnabled(false);
 
-        // Pehle "Students" node me bache ka username check karenge
-        DatabaseReference studentRef = FirebaseDatabase.getInstance().getReference("Students").child(username);
+        DatabaseReference requestsRef = FirebaseDatabase.getInstance().getReference("PasswordRequests").child(username);
 
-        studentRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        // 1. Pehle check karein ki request pehle se toh nahi aayi
+        requestsRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    // ✅ CASE 1: User mil gaya! Ab uski profile details nikalenge
-                    String fullName = snapshot.child("fullName").getValue(String.class);
-                    String mobile = snapshot.child("mobile").getValue(String.class);
-                    String address = snapshot.child("address").getValue(String.class);
-
-                    // Ab Admin ke dekhne ke liye "PasswordRequests" folder me profile details bhejenge
-                    DatabaseReference requestRef = FirebaseDatabase.getInstance().getReference("PasswordRequests").child(username);
-
-                    HashMap<String, Object> requestData = new HashMap<>();
-                    requestData.put("fullName", fullName != null ? fullName : "N/A");
-                    requestData.put("mobile", mobile != null ? mobile : "N/A");
-                    requestData.put("address", address != null ? address : "N/A");
-                    requestData.put("status", "Pending"); // Admin manual reset karega
-
-                    requestRef.setValue(requestData).addOnCompleteListener(task -> {
-                        btnResetRequest.setText("Send Request   →");
-                        btnResetRequest.setEnabled(true);
-                        
-                        if (task.isSuccessful()) {
-                            // Bachhe ko confirmation message dikhao
-                            Toast.makeText(ForgotPasswordActivity.this, "Request sent! Admin will reset your password.", Toast.LENGTH_LONG).show();
-                            finish(); // Kaam khatam, wapas login screen par bhej do
-                        } else {
-                            Toast.makeText(ForgotPasswordActivity.this, "Failed to send request. Check internet.", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-
-                } else {
-                    // ❌ CASE 2: Username galat hai ya database me nahi hai
+                if (snapshot.exists() && "Pending".equals(snapshot.child("status").getValue(String.class))) {
+                    // Agar pehle se Pending request hai
                     btnResetRequest.setText("Send Request   →");
                     btnResetRequest.setEnabled(true);
-                    
-                    // Saaf saaf mana kar do!
-                    Toast.makeText(ForgotPasswordActivity.this, "User not found! Please check your username.", Toast.LENGTH_LONG).show();
+                    showCustomAlert("Request is under verification. Get it verified from Admin", true);
+                } else {
+                    // 2. Agar nahi hai, toh check karein ki User Database me hai ya nahi
+                    DatabaseReference studentRef = FirebaseDatabase.getInstance().getReference("Students").child(username);
+                    studentRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot studentSnap) {
+                            if (studentSnap.exists()) {
+                                // User mil gaya! Sirf username aur status submit karein
+                                HashMap<String, Object> reqData = new HashMap<>();
+                                reqData.put("status", "Pending");
+                                reqData.put("timestamp", System.currentTimeMillis()); // Kab request ki gayi
+                                
+                                requestsRef.setValue(reqData).addOnCompleteListener(task -> {
+                                    btnResetRequest.setText("Send Request   →");
+                                    btnResetRequest.setEnabled(true);
+                                    if (task.isSuccessful()) {
+                                        showCustomAlert("Request sent successfully! Admin will update it.", false);
+                                    } else {
+                                        showCustomAlert("Failed to send request. Check internet.", true);
+                                    }
+                                });
+                            } else {
+                                // User hi nahi hai database me
+                                btnResetRequest.setText("Send Request   →");
+                                btnResetRequest.setEnabled(true);
+                                showCustomAlert("User not found! Please check your username.", true);
+                            }
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError error) {
+                            resetButton();
+                        }
+                    });
                 }
             }
 
             @Override
             public void onCancelled(DatabaseError error) {
-                btnResetRequest.setText("Send Request   →");
-                btnResetRequest.setEnabled(true);
-                Toast.makeText(ForgotPasswordActivity.this, "Database Error. Try again.", Toast.LENGTH_SHORT).show();
+                resetButton();
             }
         });
+    }
+
+    private void resetButton() {
+        btnResetRequest.setText("Send Request   →");
+        btnResetRequest.setEnabled(true);
+        showCustomAlert("Database Error. Try again.", true);
+    }
+
+    // Custom Toast with ❌ Button (Top Corner me chamkega)
+    private void showCustomAlert(String message, boolean isError) {
+        Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.custom_alert);
+        
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT);
+            window.setGravity(Gravity.TOP); // Upar ki taraf dikhega
+        }
+
+        TextView tvMsg = dialog.findViewById(R.id.tvAlertMessage);
+        TextView tvClose = dialog.findViewById(R.id.tvAlertClose);
+        LinearLayout bg = dialog.findViewById(R.id.alertBackground);
+
+        tvMsg.setText(message);
+
+        // Agar Error nahi hai (Success hai), toh Green background kar do, warna Red hi rahega
+        if (!isError) {
+            bg.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#4CAF50")));
+        }
+
+        // ❌ button par click karte hi popup band hoga
+        tvClose.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 }
