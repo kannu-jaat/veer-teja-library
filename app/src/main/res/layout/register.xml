@@ -2,99 +2,305 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F4F6F9">
+    android:background="#0A0B1A"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
         android:orientation="vertical"
-        android:padding="30dp"
-        android:gravity="center_horizontal">
+        android:paddingLeft="28dp"
+        android:paddingRight="28dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="20dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
             android:text="Student Registration"
-            android:textColor="#1A1A2E"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="30dp" />
+            android:textColor="#FFFFFF"
+            android:textSize="22sp"
+            android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/etRegFullName"
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Create your new account"
+            android:textColor="#64748B"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/tvRegAvatar"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:layout_marginTop="25dp"
+            android:layout_marginBottom="25dp"
+            android:background="@drawable/bg_logo_glowing"
+            android:gravity="center"
+            android:text="👤+"
+            android:textSize="28sp" />
+
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:hint="Full Name"
-            android:background="#FFFFFF"
-            android:padding="15dp"
-            android:layout_marginBottom="15dp" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="12dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Username"
+                android:textColor="#3B82F6" 
+                android:textSize="11sp"
+                android:layout_marginLeft="6dp"
+                android:layout_marginBottom="4dp"/>
+            <EditText
+                android:id="@+id/etRegUsername"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" 
+                android:background="@drawable/bg_input_neon"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textColorHint="#475569"
+                android:singleLine="true"/>
+        </LinearLayout>
 
-        <EditText
-            android:id="@+id/etRegMobile"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:hint="Mobile Number"
-            android:inputType="phone"
-            android:background="#FFFFFF"
-            android:padding="15dp"
-            android:layout_marginBottom="15dp" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="12dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Full Name"
+                android:textColor="#3B82F6" 
+                android:textSize="11sp"
+                android:layout_marginLeft="6dp"
+                android:layout_marginBottom="4dp"/>
+            <EditText
+                android:id="@+id/etRegFullName"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" 
+                android:background="@drawable/bg_input_neon"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textColorHint="#475569"
+                android:singleLine="true"/>
+        </LinearLayout>
 
-        <EditText
-            android:id="@+id/etRegAddress"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:hint="Full Address"
-            android:background="#FFFFFF"
-            android:padding="15dp"
-            android:layout_marginBottom="15dp" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="12dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Mobile Number"
+                android:textColor="#3B82F6" 
+                android:textSize="11sp"
+                android:layout_marginLeft="6dp"
+                android:layout_marginBottom="4dp"/>
+            <EditText
+                android:id="@+id/etRegMobile"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" 
+                android:background="@drawable/bg_input_neon"
+                android:inputType="phone"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textColorHint="#475569"
+                android:singleLine="true"/>
+        </LinearLayout>
 
-        <EditText
-            android:id="@+id/etRegUsername"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:hint="Choose a Username"
-            android:background="#FFFFFF"
-            android:padding="15dp"
-            android:layout_marginBottom="15dp" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="12dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Full Address"
+                android:textColor="#3B82F6" 
+                android:textSize="11sp"
+                android:layout_marginLeft="6dp"
+                android:layout_marginBottom="4dp"/>
+            <EditText
+                android:id="@+id/etRegAddress"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" 
+                android:background="@drawable/bg_input_neon"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textColorHint="#475569"
+                android:singleLine="true"/>
+        </LinearLayout>
 
-        <EditText
-            android:id="@+id/etRegPassword"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:hint="Create Password"
-            android:inputType="textPassword"
-            android:background="#FFFFFF"
-            android:padding="15dp"
-            android:layout_marginBottom="20dp" />
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="20dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Password"
+                android:textColor="#8E2DE2" 
+                android:textSize="11sp"
+                android:layout_marginLeft="6dp"
+                android:layout_marginBottom="4dp"/>
+            <EditText
+                android:id="@+id/etRegPassword"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" 
+                android:background="@drawable/bg_input_neon"
+                android:inputType="textPassword"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textColorHint="#475569"
+                android:singleLine="true"/>
+        </LinearLayout>
 
-        <Button
+        <LinearLayout
             android:id="@+id/btnSelectPhoto"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:text="SELECT PROFILE PHOTO"
-            android:backgroundTint="#888888"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="20dp" />
+            android:layout_height="55dp"
+            android:background="@drawable/bg_input_neon"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:layout_marginBottom="12dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📷"
+                android:textSize="20sp"
+                android:layout_marginRight="15dp"/>
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/tvPhotoStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Upload Profile Photo"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tap to select photo"
+                    android:textColor="#64748B"
+                    android:textSize="10sp"/>
+            </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="☁️"
+                android:textSize="18sp"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btnSelectID"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:background="@drawable/bg_input_neon"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:layout_marginBottom="25dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📄"
+                android:textSize="20sp"
+                android:layout_marginRight="15dp"/>
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/tvIDStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Upload ID Proof (Optional)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Aadhar/Voter ID"
+                    android:textColor="#64748B"
+                    android:textSize="10sp"/>
+            </LinearLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="☁️"
+                android:textSize="18sp"/>
+        </LinearLayout>
+
+        <CheckBox
+            android:id="@+id/cbTerms"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="I agree to the Terms &amp; Privacy Policy"
+            android:textColor="#94A3B8"
+            android:textSize="12sp"
+            android:buttonTint="#8E2DE2"
+            android:layout_marginBottom="20dp"/>
 
         <Button
             android:id="@+id/btnSubmitReg"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="SUBMIT REGISTRATION"
-            android:backgroundTint="#E94560"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_btn_gradient"
+            android:text="Register   →"
             android:textColor="#FFFFFF"
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textStyle="bold"
-            android:layout_marginBottom="20dp" />
+            android:layout_marginBottom="24dp"
+            android:textAllCaps="false"/>
 
-        <TextView
-            android:id="@+id/tvBackToLogin"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Already Registered? Go to Login"
-            android:textColor="#1A1A2E"
-            android:textStyle="bold"
-            android:layout_marginBottom="20dp"/>
+            android:orientation="horizontal"
+            android:layout_marginBottom="30dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Already have an account? "
+                android:textColor="#64748B"
+                android:textSize="13sp"/>
+            <TextView
+                android:id="@+id/tvBackToLogin"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Login"
+                android:textColor="#3B82F6"
+                android:textSize="13sp"
+                android:textStyle="bold"/>
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>
