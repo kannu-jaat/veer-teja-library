@@ -186,8 +186,16 @@ public class RegisterActivity extends Activity {
         }
     }
 
-    // 4. UPLOAD TO CLOUDINARY (Background Thread - Slash Error Fixed)
+    // 4. UPLOAD TO CLOUDINARY (Background Thread - Display Name Error Fixed)
     private void uploadImageToCloudinary() {
+        // Bache ka username nikal rahe hain taaki photo uske naam se save ho
+        String username = etUsername.getText().toString().trim();
+        if (username.isEmpty()) {
+            username = "student_" + System.currentTimeMillis();
+        }
+        
+        final String finalUsername = username;
+
         new Thread(() -> {
             try {
                 URL url = new URL("https://api.cloudinary.com/v1_1/" + AppConfig.CLOUDINARY_CLOUD_NAME + "/image/upload");
@@ -196,14 +204,16 @@ public class RegisterActivity extends Activity {
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
                 conn.setDoOutput(true);
 
-                // 🔥 FIXED: Slash (/) ko Underscore (_) se replace kar diya hai
-                // Ab folder name "Krishna_Library_Profiles" hoga
+                // Folder Name (Spaces hatakar)
                 String safeFolderName = AppConfig.LIBRARY_NAME.replace(" ", "_") + "_Profiles";
 
                 // URL Encode format me data bhejna
                 String dataStr = "data:image/jpeg;base64," + base64ImageString;
+                
+                // 🔥 NAYA JADOO: public_id add kiya hai! Ab photo username ke naam se save hogi.
                 String postParameters = "upload_preset=" + java.net.URLEncoder.encode(AppConfig.CLOUDINARY_UPLOAD_PRESET, "UTF-8")
                         + "&folder=" + java.net.URLEncoder.encode(safeFolderName, "UTF-8")
+                        + "&public_id=" + java.net.URLEncoder.encode(finalUsername, "UTF-8") 
                         + "&file=" + java.net.URLEncoder.encode(dataStr, "UTF-8");
 
                 DataOutputStream os = new DataOutputStream(conn.getOutputStream());
@@ -225,7 +235,6 @@ public class RegisterActivity extends Activity {
                     // Cloudinary se URL mil gaya, ab Firebase bhejenge
                     runOnUiThread(() -> saveStudentToFirebase(secureUrl));
                 } else {
-                    // Agar koi aur error aaya, toh exact reason nikalenge
                     BufferedReader errorStream = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
                     StringBuilder errorResponse = new StringBuilder();
                     String line;
