@@ -26,7 +26,7 @@ public class ForegroundService extends Service {
         } else {
             notification = new Notification.Builder(this)
                     .setContentTitle("Krishna Library")
-                    .setContentText("Library App background me chal raha hai")
+                    .setContentText("Welcome Back 💕")
                     .setSmallIcon(android.R.drawable.ic_dialog_info)
                     .build();
         }
