@@ -67,6 +67,16 @@
                 android:textSize="14sp"
                 android:textColorHint="#475569"
                 android:singleLine="true"/>
+            
+            <TextView
+                android:id="@+id/tvUsernameStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="6dp"
+                android:layout_marginTop="4dp"
+                android:text=""
+                android:textSize="6sp"
+                android:visibility="gone"/>
         </LinearLayout>
 
         <LinearLayout
