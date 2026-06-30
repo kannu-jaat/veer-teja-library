@@ -2,11 +2,14 @@ package com.google.android.youtube.pro;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -22,7 +25,9 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.google.firebase.database.DataSnapshot;
@@ -44,12 +49,13 @@ import java.util.HashMap;
 public class RegisterActivity extends Activity {
 
     private EditText etUsername, etFullName, etMobile, etAddress, etPassword, etRegConfirmPassword;
-    private TextView tvUsernameStatus, tvPhotoStatus, tvIDStatus, tvBackToLogin, tvTogglePassword;
+    private TextView tvUsernameStatus, tvPhotoStatus, tvIDStatus, tvBackToLogin, tvTogglePassword, tvInternetWarning;
+    private ImageView ivRegAvatar;
     private LinearLayout btnSelectPhoto, btnSelectID;
     private Button btnSubmitReg;
+    private ProgressBar pbSubmit;
     private CheckBox cbTerms;
 
-    // 🔥 Base64 string ki jagah ab sidha Direct Binary Bytes save honge
     private byte[] profileImageBytes = null;
     private byte[] idImageBytes = null;
     
@@ -72,6 +78,10 @@ public class RegisterActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.register);
 
+        tvInternetWarning = findViewById(R.id.tvInternetWarning);
+        ivRegAvatar = findViewById(R.id.ivRegAvatar);
+        pbSubmit = findViewById(R.id.pbSubmit);
+        
         etUsername = findViewById(R.id.etRegUsername);
         etFullName = findViewById(R.id.etRegFullName);
         etMobile = findViewById(R.id.etRegMobile);
@@ -92,12 +102,10 @@ public class RegisterActivity extends Activity {
 
         tvBackToLogin.setOnClickListener(v -> finish());
 
-        // Limits Setup
         etPassword.setFilters(new InputFilter[]{new InputFilter.LengthFilter(15)});
         etRegConfirmPassword.setFilters(new InputFilter[]{new InputFilter.LengthFilter(15)});
-        etMobile.setFilters(new InputFilter[]{new InputFilter.LengthFilter(10)}); // Mobile max 10 digits
+        etMobile.setFilters(new InputFilter[]{new InputFilter.LengthFilter(10)});
 
-        // Password Show/Hide Toggle
         tvTogglePassword.setOnClickListener(v -> {
             if (isPasswordVisible) {
                 etPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
@@ -110,7 +118,6 @@ public class RegisterActivity extends Activity {
             isPasswordVisible = !isPasswordVisible;
         });
 
-        // 1. REALTIME USERNAME CHECK (With Automated Lowercase)
         etUsername.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -118,15 +125,12 @@ public class RegisterActivity extends Activity {
             public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override
             public void afterTextChanged(Editable s) {
-                // 🔥 AUTOMATIC LOWERCASE: Har letter khud hi small ho jayega
                 String username = s.toString().trim().toLowerCase();
-                
                 if (!s.toString().equals(username)) {
                     etUsername.setText(username);
-                    etUsername.setSelection(username.length()); // Cursor aakhiri me set karne ke liye
+                    etUsername.setSelection(username.length());
                     return;
                 }
-
                 tvUsernameStatus.setVisibility(View.VISIBLE);
                 if (workRunnable != null) handler.removeCallbacks(workRunnable);
                 
@@ -148,20 +152,19 @@ public class RegisterActivity extends Activity {
         btnSelectPhoto.setOnClickListener(v -> openGallery(PICK_PROFILE_REQ));
         btnSelectID.setOnClickListener(v -> openGallery(PICK_ID_REQ));
 
-        // 3. SUBMIT REGISTRATION WITH VALIDATIONS
         btnSubmitReg.setOnClickListener(v -> {
+            // 🔥 CHECK INTERNET FIRST
+            if (!isNetworkAvailable()) {
+                showInternetWarning();
+                return;
+            }
+
             String pass = etPassword.getText().toString();
             String confirmPass = etRegConfirmPassword.getText().toString();
             String mobile = etMobile.getText().toString().trim();
 
             if (!isUsernameValid) { showCustomAlert("Please choose a valid & available username.", true); return; }
-            
-            // 🔥 MOBILE NUMBER VALIDATION (Standard Indian Format Check)
-            if (!mobile.matches("^[6-9]\\d{9}$")) { 
-                showCustomAlert("Please enter a valid 10-digit mobile number.", true); 
-                return; 
-            }
-            
+            if (!mobile.matches("^[6-9]\\d{9}$")) { showCustomAlert("Please enter a valid 10-digit mobile number.", true); return; }
             if (pass.length() < 5) { showCustomAlert("Password must be between 5 to 15 characters.", true); return; }
             if (!pass.equals(confirmPass)) { showCustomAlert("Passwords do not match!", true); return; }
             if (!cbTerms.isChecked()) { showCustomAlert("Please accept Terms & Privacy Policy.", true); return; }
@@ -170,11 +173,102 @@ public class RegisterActivity extends Activity {
                 showCustomAlert("Please fill all details.", true); return;
             }
 
-            btnSubmitReg.setText("Uploading Profile Photo...");
-            btnSubmitReg.setEnabled(false);
-            
+            setLoadingState(true, "Uploading Photo...");
             startUploadProcess();
         });
+    }
+
+    // 🔥 SMART DOWN-SCALER FOR 108MP PHOTOS (Avoids OOM Crash)
+    private Bitmap getResizedBitmapSafe(Uri imageUri, int maxSize) {
+        try {
+            InputStream input = getContentResolver().openInputStream(imageUri);
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeStream(input, null, options);
+            input.close();
+
+            int outWidth = options.outWidth;
+            int outHeight = options.outHeight;
+            int inSampleSize = 1;
+
+            if (outHeight > maxSize || outWidth > maxSize) {
+                final int halfHeight = outHeight / 2;
+                final int halfWidth = outWidth / 2;
+                while ((halfHeight / inSampleSize) >= maxSize && (halfWidth / inSampleSize) >= maxSize) {
+                    inSampleSize *= 2;
+                }
+            }
+
+            options.inJustDecodeBounds = false;
+            options.inSampleSize = inSampleSize;
+            input = getContentResolver().openInputStream(imageUri);
+            Bitmap bitmap = BitmapFactory.decodeStream(input, null, options);
+            input.close();
+            return bitmap;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK && data != null && data.getData() != null) {
+            Uri imageUri = data.getData();
+            
+            // Resize image safely to max 800px
+            Bitmap safeBitmap = getResizedBitmapSafe(imageUri, 800);
+            
+            if (safeBitmap == null) {
+                showCustomAlert("Failed to process image.", true);
+                return;
+            }
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            safeBitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos); 
+            byte[] finalBytes = baos.toByteArray();
+            
+            if (requestCode == PICK_PROFILE_REQ) {
+                profileImageBytes = finalBytes;
+                ivRegAvatar.setImageBitmap(safeBitmap); // LIVE PREVIEW SET!
+                ivRegAvatar.setPadding(0, 0, 0, 0); // Remove padding so image fills circle
+                tvPhotoStatus.setText("Profile Selected ✅");
+                tvPhotoStatus.setTextColor(Color.parseColor("#4CAF50"));
+            } else if (requestCode == PICK_ID_REQ) {
+                idImageBytes = finalBytes;
+                tvIDStatus.setText("ID Selected ✅");
+                tvIDStatus.setTextColor(Color.parseColor("#4CAF50"));
+            }
+        }
+    }
+
+    // CHECK INTERNET STATUS
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (connectivityManager != null) {
+            NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+            return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+        }
+        return false;
+    }
+
+    // SHOW TOP WARNING BAR
+    private void showInternetWarning() {
+        tvInternetWarning.setVisibility(View.VISIBLE);
+        handler.postDelayed(() -> tvInternetWarning.setVisibility(View.GONE), 3000); // 3 sec baad chup jayega
+    }
+
+    // LOADING INDICATOR LOGIC
+    private void setLoadingState(boolean isLoading, String text) {
+        if (isLoading) {
+            btnSubmitReg.setText(text);
+            btnSubmitReg.setEnabled(false);
+            pbSubmit.setVisibility(View.VISIBLE);
+        } else {
+            btnSubmitReg.setText(text);
+            btnSubmitReg.setEnabled(true);
+            pbSubmit.setVisibility(View.GONE);
+        }
     }
 
     private void openGallery(int requestCode) {
@@ -191,6 +285,7 @@ public class RegisterActivity extends Activity {
     }
 
     private void checkUsernameInFirebase(String username) {
+        if (!isNetworkAvailable()) return;
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Students").child(username);
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -203,47 +298,15 @@ public class RegisterActivity extends Activity {
         });
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK && data != null && data.getData() != null) {
-            try {
-                Uri imageUri = data.getData();
-                InputStream imageStream = getContentResolver().openInputStream(imageUri);
-                Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
-                
-                // Directly compress to Binary Bytes (No heavy Base64 encoding overhead)
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                selectedImage.compress(Bitmap.CompressFormat.JPEG, 70, baos); 
-                byte[] finalBytes = baos.toByteArray();
-                
-                if (requestCode == PICK_PROFILE_REQ) {
-                    profileImageBytes = finalBytes;
-                    tvPhotoStatus.setText("Profile Selected ✅");
-                    tvPhotoStatus.setTextColor(Color.parseColor("#4CAF50"));
-                } else if (requestCode == PICK_ID_REQ) {
-                    idImageBytes = finalBytes;
-                    tvIDStatus.setText("ID Selected ✅");
-                    tvIDStatus.setTextColor(Color.parseColor("#4CAF50"));
-                }
-            } catch (Exception e) {
-                showCustomAlert("Failed to process image.", true);
-            }
-        }
-    }
-
-    // 4. MULTIPART DUAL UPLOAD LOGIC (Industry Standard Direct Upload)
     private void startUploadProcess() {
         String username = etUsername.getText().toString().trim().toLowerCase();
         String safeFolder = AppConfig.LIBRARY_NAME.replace(" ", "_");
 
-        // Profile Image Upload
         uploadSingleImage(profileImageBytes, safeFolder + "_Profiles", username, new UploadCallback() {
             @Override
             public void onSuccess(String profileUrl) {
-                // Check if optional ID exists
                 if (idImageBytes != null) {
-                    runOnUiThread(() -> btnSubmitReg.setText("Uploading ID Proof..."));
+                    runOnUiThread(() -> setLoadingState(true, "Uploading ID..."));
                     uploadSingleImage(idImageBytes, safeFolder + "_ID_Proofs", username + "_ID", new UploadCallback() {
                         @Override
                         public void onSuccess(String idUrl) {
@@ -251,7 +314,10 @@ public class RegisterActivity extends Activity {
                         }
                         @Override
                         public void onFailed(String error) {
-                            runOnUiThread(() -> resetUploadButton("ID Upload Failed: " + error));
+                            runOnUiThread(() -> {
+                                setLoadingState(false, "Register");
+                                showCustomAlert("ID Upload Failed: " + error, true);
+                            });
                         }
                     });
                 } else {
@@ -260,12 +326,14 @@ public class RegisterActivity extends Activity {
             }
             @Override
             public void onFailed(String error) {
-                runOnUiThread(() -> resetUploadButton("Profile Upload Failed: " + error));
+                runOnUiThread(() -> {
+                    setLoadingState(false, "Register");
+                    showCustomAlert("Profile Upload Failed: " + error, true);
+                });
             }
         });
     }
 
-    // PURE MULTIPART BINARY ENGINE (Bypasses Base64 completamente)
     private void uploadSingleImage(byte[] imageBytes, String folderName, String publicId, UploadCallback callback) {
         new Thread(() -> {
             HttpURLConnection conn = null;
@@ -278,20 +346,15 @@ public class RegisterActivity extends Activity {
                 conn.setDoOutput(true);
 
                 OutputStream os = conn.getOutputStream();
-                
-                // Write Form Parameters
                 writeMultipartParam(os, boundary, "upload_preset", AppConfig.CLOUDINARY_UPLOAD_PRESET);
                 writeMultipartParam(os, boundary, "folder", folderName);
                 writeMultipartParam(os, boundary, "public_id", publicId);
                 
-                // Write Binary File Param
                 os.write(("--" + boundary + "\r\n").getBytes());
                 os.write(("Content-Disposition: form-data; name=\"file\"; filename=\"" + publicId + ".jpg\"\r\n").getBytes());
                 os.write(("Content-Type: image/jpeg\r\n\r\n").getBytes());
                 os.write(imageBytes);
                 os.write(("\r\n").getBytes());
-                
-                // Close Multipart Body
                 os.write(("--" + boundary + "--\r\n").getBytes());
                 os.flush(); os.close();
 
@@ -301,7 +364,6 @@ public class RegisterActivity extends Activity {
                     String inputLine; StringBuilder resp = new StringBuilder();
                     while ((inputLine = in.readLine()) != null) resp.append(inputLine);
                     in.close();
-                    
                     String secureUrl = new JSONObject(resp.toString()).getString("secure_url");
                     callback.onSuccess(secureUrl);
                 } else {
@@ -321,16 +383,9 @@ public class RegisterActivity extends Activity {
         os.write((value + "\r\n").getBytes());
     }
 
-    private void resetUploadButton(String errorMsg) {
-        btnSubmitReg.setText("Register");
-        btnSubmitReg.setEnabled(true);
-        showCustomAlert(errorMsg, true);
-    }
-
-    // 5. SAVE DATA TO FIREBASE
     private void saveStudentToFirebase(String profileUrl, String idUrl) {
-        btnSubmitReg.setText("Saving Data...");
-        String username = etUsername.getText().toString().trim().toLowerCase(); // Always safe lowercase
+        runOnUiThread(() -> setLoadingState(true, "Saving Data..."));
+        String username = etUsername.getText().toString().trim().toLowerCase();
         
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Students").child(username);
         
@@ -347,8 +402,7 @@ public class RegisterActivity extends Activity {
         data.put("registrationTime", sdf.format(new java.util.Date()));
 
         ref.setValue(data).addOnCompleteListener(task -> {
-            btnSubmitReg.setText("Register");
-            btnSubmitReg.setEnabled(true);
+            setLoadingState(false, "Register");
             if (task.isSuccessful()) {
                 showCustomAlert("Registered Successfully! Pending Admin Approval.", false);
                 handler.postDelayed(this::finish, 2000); 
