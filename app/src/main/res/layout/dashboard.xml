@@ -1,106 +1,282 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F172A" 
-    android:orientation="vertical"
-    android:padding="20dp">
+    android:background="#FFFFFF">
 
-    <TextView
-        android:id="@+id/tvDashboardLibName"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="30dp"
-        android:text="LIBRARY NAME"
-        android:textColor="#FFFFFF"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.05" />
-
-    <TextView
-        android:id="@+id/tvWelcomeStudent"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="40dp"
-        android:text="Welcome, Student"
-        android:textColor="#94A3B8"
-        android:textSize="18sp" />
-
-    <GridLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:alignmentMode="alignMargins"
-        android:columnCount="2"
-        android:columnOrderPreserved="false"
-        android:rowCount="2">
+        android:layout_height="match_parent"
+        android:layout_above="@id/bottomNavLayout"
+        android:fillViewport="true">
 
         <LinearLayout
-            android:id="@+id/cardAttendance"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_columnWeight="1"
-            android:layout_margin="10dp"
-            android:background="@drawable/glass_card"
-            android:gravity="center"
             android:orientation="vertical"
-            android:padding="30dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="📷" android:textSize="40sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Attendance" android:textColor="#FFFFFF" android:textStyle="bold" />
-        </LinearLayout>
+            android:padding="20dp">
 
-        <LinearLayout
-            android:id="@+id/cardFees"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_columnWeight="1"
-            android:layout_margin="10dp"
-            android:background="@drawable/glass_card"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="30dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="💸" android:textSize="40sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Fee Status" android:textColor="#FFFFFF" android:textStyle="bold" />
-        </LinearLayout>
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp">
 
-        <LinearLayout
-            android:id="@+id/cardNotices"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_columnWeight="1"
-            android:layout_margin="10dp"
-            android:background="@drawable/glass_card"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="30dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🔔" android:textSize="40sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Notices" android:textColor="#FFFFFF" android:textStyle="bold" />
-        </LinearLayout>
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/cvDashAvatar"
+                    android:layout_width="55dp"
+                    android:layout_height="55dp"
+                    android:layout_centerVertical="true"
+                    app:cardCornerRadius="27.5dp"
+                    app:cardElevation="2dp">
+                    <ImageView
+                        android:id="@+id/ivDashAvatar"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:src="@android:drawable/ic_menu_camera" />
+                </androidx.cardview.widget.CardView>
 
-        <LinearLayout
-            android:id="@+id/cardProfile"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_columnWeight="1"
-            android:layout_margin="10dp"
-            android:background="@drawable/glass_card"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="30dp">
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="👤" android:textSize="40sp" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="My Profile" android:textColor="#FFFFFF" android:textStyle="bold" />
-        </LinearLayout>
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toRightOf="@id/cvDashAvatar"
+                    android:layout_toLeftOf="@id/ivNotification"
+                    android:layout_marginLeft="15dp"
+                    android:layout_centerVertical="true"
+                    android:orientation="vertical">
 
-    </GridLayout>
+                    <TextView
+                        android:id="@+id/tvDashGreeting"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Good Morning,"
+                        android:textColor="#0F172A"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
 
-    <Button
-        android:id="@+id/btnLogout"
+                    <TextView
+                        android:id="@+id/tvDashName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Student Name"
+                        android:textColor="#0047FF"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvDashLibName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Welcome to Library"
+                        android:textColor="#64748B"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="5dp"/>
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        
+                        <TextView
+                            android:id="@+id/tvStatusBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_badge_green"
+                            android:text="✓ Approved • Active"
+                            android:textColor="#10B981"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:paddingLeft="8dp"
+                            android:paddingRight="8dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:layout_marginRight="10dp"/>
+
+                        <TextView
+                            android:id="@+id/tvSeatBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/bg_input_neon" 
+                            android:backgroundTint="#EFF6FF"
+                            android:text="Seat Pending"
+                            android:textColor="#3B82F6"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:paddingLeft="8dp"
+                            android:paddingRight="8dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ivNotification"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_alignParentRight="true"
+                    android:layout_centerVertical="true"
+                    android:src="@android:drawable/ic_popup_reminder"
+                    app:tint="#0047FF"/>
+            </RelativeLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:layout_marginBottom="15dp">
+                
+                <androidx.cardview.widget.CardView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginRight="7.5dp"
+                    app:cardBackgroundColor="#F0FDF4"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="15dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Today Attendance" android:textColor="#10B981" android:textSize="11sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Not Marked" android:textColor="#0F172A" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Scan QR to mark\nyour attendance" android:textColor="#64748B" android:textSize="10sp" android:layout_marginTop="4dp"/>
+                        <Button android:layout_width="match_parent" android:layout_height="35dp" android:text="Scan Now" android:textColor="#10B981" android:textSize="12sp" android:background="@drawable/bg_input_white" android:layout_marginTop="10dp"/>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginLeft="7.5dp"
+                    app:cardBackgroundColor="#FFFBEB"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="15dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Fee Status" android:textColor="#F59E0B" android:textSize="11sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Due" android:textColor="#EF4444" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Due Amount\n₹ 1,200" android:textColor="#64748B" android:textSize="10sp" android:layout_marginTop="4dp"/>
+                        <Button android:layout_width="match_parent" android:layout_height="35dp" android:text="View UPI QR" android:textColor="#F59E0B" android:textSize="12sp" android:background="@drawable/bg_input_white" android:layout_marginTop="10dp"/>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                android:layout_marginBottom="20dp">
+                
+                <androidx.cardview.widget.CardView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginRight="7.5dp"
+                    app:cardBackgroundColor="#EFF6FF"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="15dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Seat Information" android:textColor="#3B82F6" android:textSize="11sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Pending" android:textColor="#0F172A" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Block - • Row -" android:textColor="#64748B" android:textSize="10sp" android:layout_marginTop="4dp"/>
+                        <TextView android:layout_width="match_parent" android:layout_height="35dp" android:text="Verify from Admin" android:textColor="#3B82F6" android:textSize="11sp" android:textStyle="bold" android:gravity="center" android:layout_marginTop="10dp"/>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginLeft="7.5dp"
+                    app:cardBackgroundColor="#FAF5FF"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="15dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Latest Notice" android:textColor="#A855F7" android:textSize="11sp" android:textStyle="bold"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0 Notices" android:textColor="#0F172A" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Important updates\nfrom library" android:textColor="#64748B" android:textSize="10sp" android:layout_marginTop="4dp"/>
+                        <Button android:layout_width="match_parent" android:layout_height="35dp" android:text="View Notices" android:textColor="#A855F7" android:textSize="12sp" android:background="@drawable/bg_input_white" android:layout_marginTop="10dp"/>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_scan_banner"
+                android:orientation="horizontal"
+                android:padding="20dp"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="25dp">
+                
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="🎛️" android:textSize="32sp" android:layout_marginRight="15dp"/>
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Scan Attendance" android:textColor="#FFFFFF" android:textSize="18sp" android:textStyle="bold"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Scan QR at the entrance to mark attendance" android:textColor="#E0E7FF" android:textSize="11sp"/>
+                </LinearLayout>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=">" android:textColor="#FFFFFF" android:textSize="24sp" android:textStyle="bold"/>
+            </LinearLayout>
+
+            </LinearLayout>
+    </ScrollView>
+
+    <RelativeLayout
+        android:id="@+id/bottomNavLayout"
         android:layout_width="match_parent"
-        android:layout_height="55dp"
-        android:layout_marginTop="30dp"
-        android:backgroundTint="#E94560"
-        android:text="LOGOUT"
-        android:textColor="#FFFFFF"
-        android:textStyle="bold" />
+        android:layout_height="80dp"
+        android:layout_alignParentBottom="true">
 
-</LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_alignParentBottom="true"
+            android:background="#FFFFFF"
+            android:elevation="10dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🏠\nHome" android:textColor="#0047FF" android:textSize="12sp" android:textStyle="bold" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="📅\nAttend" android:textColor="#64748B" android:textSize="12sp" android:gravity="center"/>
+            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="₹\nFees" android:textColor="#64748B" android:textSize="12sp" android:gravity="center"/>
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="👤\nProfile" android:textColor="#64748B" android:textSize="12sp" android:gravity="center"/>
+        </LinearLayout>
 
+        <androidx.cardview.widget.CardView
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_centerHorizontal="true"
+            android:layout_alignParentTop="true"
+            app:cardBackgroundColor="#0047FF"
+            app:cardCornerRadius="30dp"
+            app:cardElevation="15dp">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:text="🎛️"
+                android:textSize="26sp"
+                android:gravity="center"/>
+        </androidx.cardview.widget.CardView>
+    </RelativeLayout>
+
+</RelativeLayout>
