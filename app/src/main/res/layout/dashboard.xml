@@ -117,7 +117,7 @@
                     android:layout_alignParentRight="true"
                     android:layout_centerVertical="true"
                     android:src="@android:drawable/ic_popup_reminder"
-                    app:tint="#0047FF"/>
+                    android:tint="#0047FF"/>
             </RelativeLayout>
 
             <LinearLayout
