@@ -6,10 +6,12 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,95 +21,131 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Calendar;
 
 public class DashboardActivity extends Activity {
 
-    private TextView tvDashName, tvDashLibName, tvStatusBadge, tvSeatBadge;
-    private ImageView ivDashAvatar;
+    private TextView tvGreeting, tvDashName, tvSeatNumber, tvMembershipType;
+    private ImageView ivHeaderAvatar, ivStatusAvatar;
+    private LinearLayout btnSupport;
     private SharedPreferences prefs;
+    private String savedUsername;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.dashboard);
 
-        // 1. UI Elements ko XML se connect karna
+        // 1. Map UI Elements
+        tvGreeting = findViewById(R.id.tvGreeting);
         tvDashName = findViewById(R.id.tvDashName);
-        tvDashLibName = findViewById(R.id.tvDashLibName);
-        tvStatusBadge = findViewById(R.id.tvStatusBadge);
-        tvSeatBadge = findViewById(R.id.tvSeatBadge);
-        ivDashAvatar = findViewById(R.id.ivDashAvatar);
-        
-        // 2. AppConfig se Master Library Name set karna
-        if (tvDashLibName != null) {
-            tvDashLibName.setText("Welcome to " + AppConfig.LIBRARY_NAME);
-        }
+        tvSeatNumber = findViewById(R.id.tvSeatNumber);
+        tvMembershipType = findViewById(R.id.tvMembershipType);
+        ivHeaderAvatar = findViewById(R.id.ivHeaderAvatar);
+        ivStatusAvatar = findViewById(R.id.ivStatusAvatar);
+        btnSupport = findViewById(R.id.btnSupport);
 
-        // 3. Login kiye hue bache ka Username nikalna
         prefs = getSharedPreferences("LibraryApp", Context.MODE_PRIVATE);
-        String savedUsername = prefs.getString("username", "");
+        savedUsername = prefs.getString("username", "");
 
         if (savedUsername.isEmpty()) {
-            // Agar galti se bina login yahan aa gaya, toh wapas bhej do
             startActivity(new Intent(this, LoginActivity.class));
             finish();
             return;
         }
 
-        // 4. Firebase se asli data mangwana
-        loadStudentData(savedUsername);
+        // 2. Set Dynamic Greeting (Morning/Afternoon/Evening)
+        setDynamicGreeting();
+
+        // 3. FAST PRELOAD: Load Cached Name & Photo Instantly (Zero Delay)
+        String cachedName = prefs.getString("cachedName", "Student");
+        tvDashName.setText(cachedName);
+        loadCachedProfileImage();
+
+        // 4. FIREBASE CHECK: Background me nayi details check karo
+        fetchDataFromFirebase();
+
+        // 5. SUPPORT BUTTON LOGIC (Dialer open karega)
+        btnSupport.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_DIAL);
+            intent.setData(Uri.parse("tel:" + AppConfig.CONTACT_NUMBER));
+            startActivity(intent);
+        });
     }
 
-    private void loadStudentData(String username) {
-        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Students").child(username);
-        
+    private void setDynamicGreeting() {
+        Calendar c = Calendar.getInstance();
+        int timeOfDay = c.get(Calendar.HOUR_OF_DAY);
+
+        if (timeOfDay >= 0 && timeOfDay < 12) {
+            tvGreeting.setText("Good Morning,");
+        } else if (timeOfDay >= 12 && timeOfDay < 16) {
+            tvGreeting.setText("Good Afternoon,");
+        } else {
+            tvGreeting.setText("Good Evening,");
+        }
+    }
+
+    private void loadCachedProfileImage() {
+        File imgFile = new File(getFilesDir(), "profile_avatar.jpg");
+        if (imgFile.exists()) {
+            Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+            if (ivHeaderAvatar != null) ivHeaderAvatar.setImageBitmap(myBitmap);
+            if (ivStatusAvatar != null) ivStatusAvatar.setImageBitmap(myBitmap);
+        }
+    }
+
+    private void fetchDataFromFirebase() {
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername);
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 if (snapshot.exists()) {
                     String fullName = snapshot.child("fullName").getValue(String.class);
-                    String status = snapshot.child("status").getValue(String.class);
-                    String photoUrl = snapshot.child("photoUrl").getValue(String.class);
                     String seat = snapshot.child("seatNumber").getValue(String.class);
+                    String photoUrl = snapshot.child("photoUrl").getValue(String.class);
+                    String status = snapshot.child("status").getValue(String.class);
 
-                    // Naam set karna
-                    if (fullName != null) tvDashName.setText(fullName);
-                    
-                    // Status Badge Logic
-                    if ("Approved".equals(status)) {
-                        tvStatusBadge.setText("✓ Approved • Active");
-                        tvStatusBadge.setTextColor(android.graphics.Color.parseColor("#10B981"));
-                    } else {
-                        tvStatusBadge.setText("⌛ Pending Approval");
-                        tvStatusBadge.setTextColor(android.graphics.Color.parseColor("#F59E0B"));
+                    // Update Name if changed
+                    if (fullName != null) {
+                        tvDashName.setText(fullName);
+                        prefs.edit().putString("cachedName", fullName).apply();
                     }
 
-                    // Seat Logic
+                    // Admin assigned Seat Number
                     if (seat != null && !seat.isEmpty()) {
-                        tvSeatBadge.setText("Seat " + seat);
+                        tvSeatNumber.setText(seat);
                     } else {
-                        tvSeatBadge.setText("Seat Pending");
+                        tvSeatNumber.setText("N/A");
                     }
 
-                    // 🔥 Cloudinary se Photo load karna (Background Thread me)
-                    if (photoUrl != null && !photoUrl.isEmpty()) {
-                        loadImageFromCloud(photoUrl);
+                    // Admin assigned Membership (Simple Logic)
+                    if ("Approved".equals(status)) {
+                        tvMembershipType.setText("Premium");
+                        tvMembershipType.setTextColor(android.graphics.Color.parseColor("#FBBF24")); // Yellow
+                    } else {
+                        tvMembershipType.setText("Pending");
+                        tvMembershipType.setTextColor(android.graphics.Color.parseColor("#EF4444")); // Red
+                    }
+
+                    // 🔥 SMART IMAGE DOWNLOAD: Sirf tabhi download hogi jab URL naya ho!
+                    String lastSavedUrl = prefs.getString("cachedImageUrl", "");
+                    if (photoUrl != null && !photoUrl.isEmpty() && !photoUrl.equals(lastSavedUrl)) {
+                        downloadAndCacheImage(photoUrl);
                     }
                 }
             }
-
             @Override
-            public void onCancelled(DatabaseError error) {
-                Toast.makeText(DashboardActivity.this, "Failed to load Dashboard data", Toast.LENGTH_SHORT).show();
-            }
+            public void onCancelled(DatabaseError error) {}
         });
     }
 
-    // Direct URL se image nikal kar ImageView me daalne ka Master Logic
-    private void loadImageFromCloud(String urlString) {
+    private void downloadAndCacheImage(String urlString) {
         new Thread(() -> {
             try {
                 URL url = new URL(urlString);
@@ -116,14 +154,24 @@ public class DashboardActivity extends Activity {
                 connection.connect();
                 InputStream input = connection.getInputStream();
                 Bitmap myBitmap = BitmapFactory.decodeStream(input);
-                
-                // Photo load hone ke baad wapas Main UI me aana
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    if (myBitmap != null && ivDashAvatar != null) {
-                        ivDashAvatar.setImageBitmap(myBitmap);
-                        ivDashAvatar.setPadding(0,0,0,0); // Padding hatao taaki photo gol (circle) me poori fit ho
-                    }
-                });
+
+                if (myBitmap != null) {
+                    // Save to local storage for future fast loading
+                    File file = new File(getFilesDir(), "profile_avatar.jpg");
+                    FileOutputStream fos = new FileOutputStream(file);
+                    myBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                    fos.flush();
+                    fos.close();
+
+                    // Update SharedPreferences with new URL
+                    prefs.edit().putString("cachedImageUrl", urlString).apply();
+
+                    // Update UI live
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        if (ivHeaderAvatar != null) ivHeaderAvatar.setImageBitmap(myBitmap);
+                        if (ivStatusAvatar != null) ivStatusAvatar.setImageBitmap(myBitmap);
+                    });
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
