@@ -30,11 +30,15 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
 
 public class DashboardActivity extends Activity {
 
-    private TextView tvGreeting, tvDashName, tvSeatNumber, tvMembershipType, tvInternetWarning;
+    private TextView tvGreeting, tvDashName, tvSeatNumber, tvMembershipType, tvValidity, tvInternetWarning;
+    private TextView tvTodayStatus, tvStatusTitle; // Attendance Status 
     private ImageView ivHeaderAvatar, ivStatusAvatar;
     private LinearLayout btnSupport;
     private SharedPreferences prefs;
@@ -52,6 +56,11 @@ public class DashboardActivity extends Activity {
         tvDashName = findViewById(R.id.tvDashName);
         tvSeatNumber = findViewById(R.id.tvSeatNumber);
         tvMembershipType = findViewById(R.id.tvMembershipType);
+        tvValidity = findViewById(R.id.tvValidity);
+        
+        tvTodayStatus = findViewById(R.id.tvTodayStatus);
+        tvStatusTitle = findViewById(R.id.tvStatusTitle);
+        
         ivHeaderAvatar = findViewById(R.id.ivHeaderAvatar);
         ivStatusAvatar = findViewById(R.id.ivStatusAvatar);
         btnSupport = findViewById(R.id.btnSupport);
@@ -72,10 +81,13 @@ public class DashboardActivity extends Activity {
         tvDashName.setText(cachedName);
         loadCachedProfileImage();
 
-        // 🟢 LIVE INTERNET MONITORING SETUP
         setupRealtimeInternetCheck();
-
-        fetchDataFromFirebase();
+        
+        // 1. Fetch Profile Data
+        fetchProfileDataFromFirebase();
+        
+        // 2. Fetch Today's Attendance
+        checkTodayAttendance();
 
         btnSupport.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_DIAL);
@@ -84,18 +96,14 @@ public class DashboardActivity extends Activity {
         });
     }
 
-    // 🔥 LIVE NETWORK LISTENER LOGIC
     private void setupRealtimeInternetCheck() {
         cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        
-        // Initial Check (For App Startup)
         if (cm != null && cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnected()) {
             tvInternetWarning.setVisibility(View.GONE);
         } else {
             tvInternetWarning.setVisibility(View.VISIBLE);
         }
 
-        // Realtime Listener
         NetworkRequest networkRequest = new NetworkRequest.Builder()
                 .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .build();
@@ -103,13 +111,10 @@ public class DashboardActivity extends Activity {
         networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
-                // Internet is BACK
                 runOnUiThread(() -> tvInternetWarning.setVisibility(View.GONE));
             }
-
             @Override
             public void onLost(Network network) {
-                // Internet is LOST
                 runOnUiThread(() -> tvInternetWarning.setVisibility(View.VISIBLE));
             }
         };
@@ -122,7 +127,6 @@ public class DashboardActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Prevent memory leak
         if (cm != null && networkCallback != null) {
             cm.unregisterNetworkCallback(networkCallback);
         }
@@ -131,7 +135,7 @@ public class DashboardActivity extends Activity {
     private void setDynamicGreeting() {
         Calendar c = Calendar.getInstance();
         int timeOfDay = c.get(Calendar.HOUR_OF_DAY);
-        if (timeOfDay >= 0 && timeOfDay < 12) tvGreeting.setText("Welcome back,");
+        if (timeOfDay >= 0 && timeOfDay < 12) tvGreeting.setText("Good Morning,");
         else if (timeOfDay >= 12 && timeOfDay < 16) tvGreeting.setText("Good Afternoon,");
         else tvGreeting.setText("Good Evening,");
     }
@@ -145,7 +149,8 @@ public class DashboardActivity extends Activity {
         }
     }
 
-    private void fetchDataFromFirebase() {
+    // 🔥 PROFILE DATA FETCH
+    private void fetchProfileDataFromFirebase() {
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername);
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -153,8 +158,9 @@ public class DashboardActivity extends Activity {
                 if (snapshot.exists()) {
                     String fullName = snapshot.child("fullName").getValue(String.class);
                     String seat = snapshot.child("seatNumber").getValue(String.class);
+                    String membership = snapshot.child("membership").getValue(String.class);
+                    String validTill = snapshot.child("validTill").getValue(String.class);
                     String photoUrl = snapshot.child("photoUrl").getValue(String.class);
-                    String status = snapshot.child("status").getValue(String.class);
 
                     if (fullName != null) {
                         tvDashName.setText(fullName);
@@ -163,18 +169,50 @@ public class DashboardActivity extends Activity {
                     if (seat != null && !seat.isEmpty()) tvSeatNumber.setText(seat);
                     else tvSeatNumber.setText("--");
 
-                    if ("Approved".equals(status)) {
-                        tvMembershipType.setText("Premium");
+                    if (membership != null && !membership.isEmpty()) {
+                        tvMembershipType.setText(membership); // e.g. "Full Day"
                         tvMembershipType.setTextColor(android.graphics.Color.parseColor("#FBBF24"));
                     } else {
                         tvMembershipType.setText("Pending");
-                        tvMembershipType.setTextColor(android.graphics.Color.parseColor("#EF4444"));
+                    }
+                    
+                    if (validTill != null && !validTill.isEmpty()) {
+                        tvValidity.setText("Valid till " + validTill);
+                    } else {
+                        tvValidity.setText("Valid till --");
                     }
 
                     String lastSavedUrl = prefs.getString("cachedImageUrl", "");
                     if (photoUrl != null && !photoUrl.isEmpty() && !photoUrl.equals(lastSavedUrl)) {
                         downloadAndCacheImage(photoUrl);
                     }
+                }
+            }
+            @Override
+            public void onCancelled(DatabaseError error) {}
+        });
+    }
+
+    // 🔥 LIVE ATTENDANCE CHECK (Based on your exact Database Structure)
+    private void checkTodayAttendance() {
+        // Date format generated matches your Database exactly (e.g., "2 July 2026")
+        String todayDateString = new SimpleDateFormat("d MMMM yyyy", Locale.ENGLISH).format(new Date());
+        
+        DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername).child(todayDateString);
+        attRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    // Node exists! Bacha present hai!
+                    String checkInTime = snapshot.child("checkIn").getValue(String.class);
+                    tvTodayStatus.setText("Marked ✓");
+                    tvTodayStatus.setTextColor(android.graphics.Color.parseColor("#10B981")); // Green
+                    tvStatusTitle.setText(todayDateString + "  •  " + checkInTime);
+                } else {
+                    // Node nahi mili! Absent ya Not Marked
+                    tvTodayStatus.setText("Not Marked");
+                    tvTodayStatus.setTextColor(android.graphics.Color.parseColor("#EF4444")); // Red
+                    tvStatusTitle.setText("Scan QR to mark attendance");
                 }
             }
             @Override
