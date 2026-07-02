@@ -308,7 +308,7 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
             
-            <View android:layout_width="match_parent" android:layout_height="10dp"/> 
+            <View android:layout_width="match_parent" android:layout_height="0dp"/> 
         </LinearLayout>
     </ScrollView>
 
@@ -333,7 +333,7 @@
 
             <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal">
                 <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_menu_today" android:tint="#94A3B8"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Attend" android:textColor="#94A3B8" android:textSize="9sp" android:layout_marginTop="2dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Attendance" android:textColor="#94A3B8" android:textSize="9sp" android:layout_marginTop="2dp"/>
             </LinearLayout>
 
             <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
