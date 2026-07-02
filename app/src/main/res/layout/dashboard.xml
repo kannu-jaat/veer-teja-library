@@ -26,9 +26,7 @@
                     android:layout_height="match_parent"
                     android:scaleType="centerCrop"
                     android:src="@drawable/bg_library_banner"
-                    android:alpha="0.55"/>
-
-                <RelativeLayout
+                    android:alpha="0.45"/> <RelativeLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:padding="20dp">
@@ -44,7 +42,8 @@
                         android:layout_width="45dp"
                         android:layout_height="45dp"
                         android:layout_alignParentRight="true"
-                        app:cardCornerRadius="22.5dp">
+                        app:cardCornerRadius="22.5dp"
+                        app:cardElevation="4dp">
                         <ImageView
                             android:id="@+id/ivHeaderAvatar"
                             android:layout_width="match_parent"
@@ -93,7 +92,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Stay focused, stay consistent."
-                        android:textColor="#E2E8F0"
+                        android:textColor="#CBD5E1"
                         android:textSize="12sp"
                         android:layout_marginTop="2dp"
                         android:layout_marginBottom="12dp"/>
@@ -134,15 +133,15 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="15dp"
+                    android:padding="16dp"
                     android:baselineAligned="false">
                     
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:orientation="horizontal" android:gravity="center_vertical">
-                        <ImageView android:layout_width="35dp" android:layout_height="35dp" android:src="@android:drawable/btn_star_big_on" android:tint="#FBBF24" android:layout_marginRight="10dp"/>
+                        <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/btn_star_big_on" android:tint="#FBBF24" android:layout_marginRight="10dp"/>
                         <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical">
                             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Membership" android:textColor="#CBD5E1" android:textSize="10sp"/>
                             <TextView android:id="@+id/tvMembershipType" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Premium" android:textColor="#FBBF24" android:textSize="16sp" android:textStyle="bold"/>
-                            <TextView android:id="@+id/tvValidity" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Valid till --" android:textColor="#CBD5E1" android:textSize="9sp"/>
+                            <TextView android:id="@+id/tvValidity" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Valid till --" android:textColor="#94A3B8" android:textSize="9sp"/>
                         </LinearLayout>
                     </LinearLayout>
 
@@ -169,7 +168,7 @@
                 android:textStyle="bold"
                 android:layout_marginLeft="20dp"
                 android:layout_marginTop="24dp"
-                android:layout_marginBottom="12dp"/>
+                android:layout_marginBottom="8dp"/>
 
             <GridLayout
                 android:layout_width="match_parent"
@@ -178,77 +177,108 @@
                 android:paddingLeft="12dp"
                 android:paddingRight="12dp">
                 
-                <LinearLayout android:id="@+id/btnMarkAttend" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_badge_green" android:clickable="true" android:focusable="true">
+                <LinearLayout android:id="@+id/btnGridMarkAttend" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_badge_green" android:clickable="true" android:focusable="true">
                     <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_menu_camera" android:tint="#10B981"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mark\nAttend" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="6dp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mark\nAttend" android:textColor="#0F172A" android:textSize="11sp" android:gravity="center" android:layout_marginTop="6dp"/>
                 </LinearLayout>
 
-                <LinearLayout android:id="@+id/btnMyAttend" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#EFF6FF" android:clickable="true" android:focusable="true">
+                <LinearLayout android:id="@+id/btnGridMyAttend" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#EFF6FF" android:clickable="true" android:focusable="true">
                     <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_menu_today" android:tint="#3B82F6"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="My\nAttend" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="6dp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="My\nAttend" android:textColor="#0F172A" android:textSize="11sp" android:gravity="center" android:layout_marginTop="6dp"/>
                 </LinearLayout>
 
-                <LinearLayout android:id="@+id/btnMySeat" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#F3E8FF" android:clickable="true" android:focusable="true">
+                <LinearLayout android:id="@+id/btnGridMySeat" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#F3E8FF" android:clickable="true" android:focusable="true">
                     <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_menu_view" android:tint="#A855F7"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="My Seat\n(A12)" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="6dp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="My Seat\nInfo" android:textColor="#0F172A" android:textSize="11sp" android:gravity="center" android:layout_marginTop="6dp"/>
                 </LinearLayout>
 
-                <LinearLayout android:id="@+id/btnFees" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#FFF7ED" android:clickable="true" android:focusable="true">
-                    <TextView android:layout_width="26dp" android:layout_height="26dp" android:text="₹" android:textColor="#F97316" android:textSize="18sp" android:textStyle="bold" android:gravity="center"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Fees &amp;\nPayment" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="6dp"/>
+                <LinearLayout android:id="@+id/btnGridFees" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#FFF7ED" android:clickable="true" android:focusable="true">
+                    <TextView android:layout_width="26dp" android:layout_height="26dp" android:text="₹" android:textColor="#F97316" android:textSize="20sp" android:textStyle="bold" android:gravity="center"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Fees &amp;\nPayment" android:textColor="#0F172A" android:textSize="11sp" android:gravity="center" android:layout_marginTop="6dp"/>
                 </LinearLayout>
 
-                <LinearLayout android:id="@+id/btnNotices" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#FEF2F2" android:clickable="true" android:focusable="true">
+                <LinearLayout android:id="@+id/btnGridNotices" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#FEF2F2" android:clickable="true" android:focusable="true">
                     <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_menu_info_details" android:tint="#EF4444"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Notices" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="6dp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Library\nNotices" android:textColor="#0F172A" android:textSize="11sp" android:gravity="center" android:layout_marginTop="6dp"/>
                 </LinearLayout>
 
-                <LinearLayout android:id="@+id/btnRules" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#F0FDFA" android:clickable="true" android:focusable="true">
+                <LinearLayout android:id="@+id/btnGridRules" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#F0FDFA" android:clickable="true" android:focusable="true">
                     <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_menu_agenda" android:tint="#14B8A6"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rules" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="6dp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Library\nRules" android:textColor="#0F172A" android:textSize="11sp" android:gravity="center" android:layout_marginTop="6dp"/>
                 </LinearLayout>
 
-                <LinearLayout android:id="@+id/btnProfile" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#EEF2FF" android:clickable="true" android:focusable="true">
+                <LinearLayout android:id="@+id/btnGridProfile" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#EEF2FF" android:clickable="true" android:focusable="true">
                     <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_menu_myplaces" android:tint="#6366F1"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Profile" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="6dp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="View\nProfile" android:textColor="#0F172A" android:textSize="11sp" android:gravity="center" android:layout_marginTop="6dp"/>
                 </LinearLayout>
 
                 <LinearLayout android:id="@+id/btnSupport" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="6dp" android:padding="12dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#F0F9FF" android:clickable="true" android:focusable="true">
                     <ImageView android:layout_width="26dp" android:layout_height="26dp" android:src="@android:drawable/ic_menu_call" android:tint="#0EA5E9"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Support" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="6dp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Help &amp;\nSupport" android:textColor="#0F172A" android:textSize="11sp" android:gravity="center" android:layout_marginTop="6dp"/>
                 </LinearLayout>
-
             </GridLayout>
 
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="20dp"
+                android:layout_marginLeft="20dp"
+                android:layout_marginRight="20dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="25dp"
                 app:cardBackgroundColor="#F0FDF4"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp">
                 
-                <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="20dp">
+                <RelativeLayout 
+                    android:layout_width="match_parent" 
+                    android:layout_height="wrap_content" 
+                    android:padding="20dp">
                     
-                    <TextView android:id="@+id/tvStatusTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Today's Attendance" android:textColor="#0F172A" android:textSize="12sp"/>
-                    <TextView android:id="@+id/tvTodayStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_below="@id/tvStatusTitle" android:text="Marked ✓" android:textColor="#10B981" android:textSize="22sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                    <TextView 
+                        android:id="@+id/tvStatusTitle" 
+                        android:layout_width="wrap_content" 
+                        android:layout_height="wrap_content" 
+                        android:text="Today's Attendance Status" 
+                        android:textColor="#475569" 
+                        android:textSize="12sp"
+                        android:textStyle="bold"/>
                     
-                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_below="@id/tvTodayStatus" android:layout_marginTop="10dp" android:orientation="horizontal">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="25 May 2026" android:textColor="#64748B" android:textSize="11sp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="  •  09:15 AM" android:textColor="#64748B" android:textSize="11sp"/>
+                    <TextView 
+                        android:id="@+id/tvTodayStatus" 
+                        android:layout_width="wrap_content" 
+                        android:layout_height="wrap_content" 
+                        android:layout_below="@id/tvStatusTitle" 
+                        android:text="Marked Successfully ✓" 
+                        android:textColor="#10B981" 
+                        android:textSize="20sp" 
+                        android:textStyle="bold" 
+                        android:layout_marginTop="4dp"/>
+                    
+                    <LinearLayout 
+                        android:layout_width="wrap_content" 
+                        android:layout_height="wrap_content" 
+                        android:layout_below="@id/tvTodayStatus" 
+                        android:layout_marginTop="8dp" 
+                        android:orientation="horizontal">
+                        
+                        <ImageView
+                            android:layout_width="14dp"
+                            android:layout_height="14dp"
+                            android:src="@android:drawable/ic_menu_today"
+                            android:tint="#64748B"
+                            android:layout_gravity="center_vertical"
+                            android:layout_marginRight="4dp"/>
+                            
+                        <TextView 
+                            android:id="@+id/tvAttendanceDate"
+                            android:layout_width="wrap_content" 
+                            android:layout_height="wrap_content" 
+                            android:text="Loading Date..." 
+                            android:textColor="#64748B" 
+                            android:textSize="12sp"/>
                     </LinearLayout>
-
-                    <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_alignParentRight="true"
-                        android:layout_centerVertical="true"
-                        android:src="@android:drawable/checkbox_on_background"
-                        android:tint="#10B981"/>
                 </RelativeLayout>
             </androidx.cardview.widget.CardView>
-            
-            <View android:layout_width="match_parent" android:layout_height="30dp"/>
         </LinearLayout>
     </ScrollView>
 
@@ -266,26 +296,26 @@
             android:orientation="horizontal"
             android:paddingTop="6dp">
             
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal">
+            <LinearLayout android:id="@+id/btnNavHome" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal" android:clickable="true" android:focusable="true">
                 <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_view" android:tint="#FBBF24"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Dashboard" android:textColor="#FBBF24" android:textSize="10sp" android:layout_marginTop="2dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Home" android:textColor="#FBBF24" android:textSize="10sp" android:layout_marginTop="2dp"/>
             </LinearLayout>
 
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal">
+            <LinearLayout android:id="@+id/btnNavAttend" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal" android:clickable="true" android:focusable="true">
                 <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_today" android:tint="#94A3B8"/>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Attend" android:textColor="#94A3B8" android:textSize="10sp" android:layout_marginTop="2dp"/>
             </LinearLayout>
 
             <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
 
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal">
+            <LinearLayout android:id="@+id/btnNavPayments" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal" android:clickable="true" android:focusable="true">
                 <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_manage" android:tint="#94A3B8"/>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Payments" android:textColor="#94A3B8" android:textSize="10sp" android:layout_marginTop="2dp"/>
             </LinearLayout>
 
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal">
-                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_more" android:tint="#94A3B8"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="More" android:textColor="#94A3B8" android:textSize="10sp" android:layout_marginTop="2dp"/>
+            <LinearLayout android:id="@+id/btnNavProfile" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal" android:clickable="true" android:focusable="true">
+                <ImageView android:layout_width="22dp" android:layout_height="22dp" android:src="@android:drawable/ic_menu_myplaces" android:tint="#94A3B8"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Profile" android:textColor="#94A3B8" android:textSize="10sp" android:layout_marginTop="2dp"/>
             </LinearLayout>
         </LinearLayout>
 
@@ -301,8 +331,8 @@
             android:clickable="true"
             android:focusable="true">
             <ImageView
-                android:layout_width="28dp"
-                android:layout_height="28dp"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
                 android:layout_gravity="center"
                 android:src="@android:drawable/ic_menu_camera"
                 android:tint="#FFFFFF"/>
