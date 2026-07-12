@@ -193,10 +193,16 @@ public class DashboardActivity extends Activity {
         });
     }
 
+    // 🔥 ULTIMATE DEBUG MODE: Yeh screen par exact path print karega!
     private void checkTodayAttendance() {
         String todayDateString = new SimpleDateFormat("d MMMM yyyy", Locale.ENGLISH).format(new Date());
         
         if (tvAttDate != null) tvAttDate.setText(todayDateString);
+
+        // 🚨 JADOO YAHAN HAI: Hum title me exact Firebase Path print karwa rahe hain
+        if (tvStatusTitle != null) {
+            tvStatusTitle.setText("Finding: Attendance/" + savedUsername + "/" + todayDateString);
+        }
 
         DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername).child(todayDateString);
         attRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -207,6 +213,9 @@ public class DashboardActivity extends Activity {
                     tvTodayStatus.setText("Marked ✓");
                     tvTodayStatus.setTextColor(android.graphics.Color.parseColor("#10B981"));
                     if (tvAttTime != null) tvAttTime.setText(checkInTime);
+                    
+                    // Agar mil gaya toh wapas normal text kar do
+                    if (tvStatusTitle != null) tvStatusTitle.setText("Today's Attendance"); 
                 } else {
                     tvTodayStatus.setText("Not Marked");
                     tvTodayStatus.setTextColor(android.graphics.Color.parseColor("#EF4444"));
@@ -214,7 +223,10 @@ public class DashboardActivity extends Activity {
                 }
             }
             @Override
-            public void onCancelled(DatabaseError error) {}
+            public void onCancelled(DatabaseError error) {
+                // Agar Firebase block kar raha hai, toh yahan error aayega
+                if (tvStatusTitle != null) tvStatusTitle.setText("Error: " + error.getMessage());
+            }
         });
     }
 
