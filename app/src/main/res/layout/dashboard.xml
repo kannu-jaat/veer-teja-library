@@ -259,13 +259,13 @@
                 
                 <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp">
                     <TextView android:id="@+id/tvStatusTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Today's Attendance" android:textColor="#0F172A" android:textSize="12sp"/>
-                    <TextView android:id="@+id/tvTodayStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_below="@id/tvStatusTitle" android:text="Marked ✓" android:textColor="#10B981" android:textSize="20sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                    <TextView android:id="@+id/tvTodayStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_below="@id/tvStatusTitle" android:text="Checking..." android:textColor="#F59E0B" android:textSize="20sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
                     
                     <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_below="@id/tvTodayStatus" android:layout_marginTop="6dp" android:orientation="horizontal">
                         <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@android:drawable/ic_menu_today" android:tint="#64748B" android:layout_marginRight="4dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="25 May 2026" android:textColor="#64748B" android:textSize="11sp"/>
+                        <TextView android:id="@+id/tvAttDate" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-- --- ----" android:textColor="#64748B" android:textSize="11sp"/>
                         <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@android:drawable/ic_menu_recent_history" android:tint="#64748B" android:layout_marginLeft="10dp" android:layout_marginRight="4dp"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="09:15 AM" android:textColor="#64748B" android:textSize="11sp"/>
+                        <TextView android:id="@+id/tvAttTime" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--:-- AM" android:textColor="#64748B" android:textSize="11sp"/>
                     </LinearLayout>
 
                     <androidx.cardview.widget.CardView
@@ -308,7 +308,7 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
             
-            <View android:layout_width="match_parent" android:layout_height="0dp"/> 
+            <View android:layout_width="match_parent" android:layout_height="80dp"/> 
         </LinearLayout>
     </ScrollView>
 
@@ -333,7 +333,7 @@
 
             <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal">
                 <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_menu_today" android:tint="#94A3B8"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Attendance" android:textColor="#94A3B8" android:textSize="9sp" android:layout_marginTop="2dp"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Attend" android:textColor="#94A3B8" android:textSize="9sp" android:layout_marginTop="2dp"/>
             </LinearLayout>
 
             <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
