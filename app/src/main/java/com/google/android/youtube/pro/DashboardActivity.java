@@ -38,7 +38,7 @@ import java.util.Locale;
 public class DashboardActivity extends Activity {
 
     private TextView tvGreeting, tvDashName, tvSeatNumber, tvMembershipType, tvValidity, tvInternetWarning;
-    private TextView tvTodayStatus, tvStatusTitle; // Attendance Status 
+    private TextView tvTodayStatus, tvStatusTitle, tvAttDate, tvAttTime;
     private ImageView ivHeaderAvatar, ivStatusAvatar;
     private LinearLayout btnSupport;
     private SharedPreferences prefs;
@@ -60,6 +60,8 @@ public class DashboardActivity extends Activity {
         
         tvTodayStatus = findViewById(R.id.tvTodayStatus);
         tvStatusTitle = findViewById(R.id.tvStatusTitle);
+        tvAttDate = findViewById(R.id.tvAttDate);
+        tvAttTime = findViewById(R.id.tvAttTime);
         
         ivHeaderAvatar = findViewById(R.id.ivHeaderAvatar);
         ivStatusAvatar = findViewById(R.id.ivStatusAvatar);
@@ -81,12 +83,11 @@ public class DashboardActivity extends Activity {
         tvDashName.setText(cachedName);
         loadCachedProfileImage();
 
+        // NETWORK LISTENER
         setupRealtimeInternetCheck();
         
-        // 1. Fetch Profile Data
+        // FETCH DATA
         fetchProfileDataFromFirebase();
-        
-        // 2. Fetch Today's Attendance
         checkTodayAttendance();
 
         btnSupport.setOnClickListener(v -> {
@@ -149,7 +150,6 @@ public class DashboardActivity extends Activity {
         }
     }
 
-    // 🔥 PROFILE DATA FETCH
     private void fetchProfileDataFromFirebase() {
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername);
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -170,7 +170,7 @@ public class DashboardActivity extends Activity {
                     else tvSeatNumber.setText("--");
 
                     if (membership != null && !membership.isEmpty()) {
-                        tvMembershipType.setText(membership); // e.g. "Full Day"
+                        tvMembershipType.setText(membership);
                         tvMembershipType.setTextColor(android.graphics.Color.parseColor("#FBBF24"));
                     } else {
                         tvMembershipType.setText("Pending");
@@ -193,26 +193,24 @@ public class DashboardActivity extends Activity {
         });
     }
 
-    // 🔥 LIVE ATTENDANCE CHECK (Based on your exact Database Structure)
     private void checkTodayAttendance() {
-        // Date format generated matches your Database exactly (e.g., "2 July 2026")
         String todayDateString = new SimpleDateFormat("d MMMM yyyy", Locale.ENGLISH).format(new Date());
         
+        if (tvAttDate != null) tvAttDate.setText(todayDateString);
+
         DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername).child(todayDateString);
         attRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 if (snapshot.exists()) {
-                    // Node exists! Bacha present hai!
                     String checkInTime = snapshot.child("checkIn").getValue(String.class);
                     tvTodayStatus.setText("Marked ✓");
-                    tvTodayStatus.setTextColor(android.graphics.Color.parseColor("#10B981")); // Green
-                    tvStatusTitle.setText(todayDateString + "  •  " + checkInTime);
+                    tvTodayStatus.setTextColor(android.graphics.Color.parseColor("#10B981"));
+                    if (tvAttTime != null) tvAttTime.setText(checkInTime);
                 } else {
-                    // Node nahi mili! Absent ya Not Marked
                     tvTodayStatus.setText("Not Marked");
-                    tvTodayStatus.setTextColor(android.graphics.Color.parseColor("#EF4444")); // Red
-                    tvStatusTitle.setText("Scan QR to mark attendance");
+                    tvTodayStatus.setTextColor(android.graphics.Color.parseColor("#EF4444"));
+                    if (tvAttTime != null) tvAttTime.setText("--:--");
                 }
             }
             @Override
