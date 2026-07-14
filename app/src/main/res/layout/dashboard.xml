@@ -166,15 +166,13 @@
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
                         <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@android:drawable/ic_menu_today" android:tint="#FFFFFF"/>
-                        <TextView 
-android:id="@+id/tvDaysPresent"
-android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="..." android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                        <TextView android:id="@+id/tvDaysPresent" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Days Present" android:textColor="#CBD5E1" android:textSize="9sp"/>
                     </LinearLayout>
 
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
                         <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@android:drawable/ic_menu_sort_by_size" android:tint="#FFFFFF"/>
-                        <TextView android:id="@+id/tvSeatNumber" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--" android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
+                        <TextView android:id="@+id/tvSeatNumber" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="..." android:textColor="#FFFFFF" android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Seat No." android:textColor="#CBD5E1" android:textSize="9sp"/>
                     </LinearLayout>
                 </LinearLayout>
@@ -203,7 +201,7 @@ android:layout_width="wrap_content" android:layout_height="wrap_content" android
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mark\nAttend" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="4dp"/>
                 </LinearLayout>
 
-                <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="4dp" android:padding="8dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#EFF6FF">
+                <LinearLayout android:id="@+id/btnMyAttendanceGrid" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="4dp" android:padding="8dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#EFF6FF">
                     <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_today" android:tint="#3B82F6"/>
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="My\nAttend" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="4dp"/>
                 </LinearLayout>
@@ -233,17 +231,7 @@ android:layout_width="wrap_content" android:layout_height="wrap_content" android
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Profile" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="4dp"/>
                 </LinearLayout>
 
-                <LinearLayout
-                    android:id="@+id/btnSupport"
-                    android:layout_width="0dp" 
-                    android:layout_height="wrap_content" 
-                    android:layout_columnWeight="1" 
-                    android:orientation="vertical" 
-                    android:gravity="center" 
-                    android:layout_margin="4dp" 
-                    android:padding="8dp" 
-                    android:background="@drawable/bg_input_neon" 
-                    android:backgroundTint="#F0F9FF">
+                <LinearLayout android:id="@+id/btnSupport" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="4dp" android:padding="8dp" android:background="@drawable/bg_input_neon" android:backgroundTint="#F0F9FF">
                     <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_call" android:tint="#0EA5E9"/>
                     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Support" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="4dp"/>
                 </LinearLayout>
@@ -333,7 +321,7 @@ android:layout_width="wrap_content" android:layout_height="wrap_content" android
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Dashboard" android:textColor="#FBBF24" android:textSize="9sp" android:layout_marginTop="2dp"/>
             </LinearLayout>
 
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal">
+            <LinearLayout android:id="@+id/btnMyAttendanceNav" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal">
                 <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_menu_today" android:tint="#94A3B8"/>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Attend" android:textColor="#94A3B8" android:textSize="9sp" android:layout_marginTop="2dp"/>
             </LinearLayout>
