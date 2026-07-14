@@ -38,9 +38,10 @@ import java.util.Locale;
 public class DashboardActivity extends Activity {
 
     private TextView tvGreeting, tvDashName, tvSeatNumber, tvMembershipType, tvValidity, tvInternetWarning;
-    private TextView tvTodayStatus, tvStatusTitle, tvAttDate, tvAttTime;
+    private TextView tvTodayStatus, tvStatusTitle, tvAttDate, tvAttTime, tvDaysPresent;
     private ImageView ivHeaderAvatar, ivStatusAvatar;
-    private LinearLayout btnSupport;
+    private LinearLayout btnSupport, btnMyAttendanceGrid, btnMyAttendanceNav;
+    
     private SharedPreferences prefs;
     private String savedUsername;
     private ConnectivityManager.NetworkCallback networkCallback;
@@ -57,6 +58,7 @@ public class DashboardActivity extends Activity {
         tvSeatNumber = findViewById(R.id.tvSeatNumber);
         tvMembershipType = findViewById(R.id.tvMembershipType);
         tvValidity = findViewById(R.id.tvValidity);
+        tvDaysPresent = findViewById(R.id.tvDaysPresent);
         
         tvTodayStatus = findViewById(R.id.tvTodayStatus);
         tvStatusTitle = findViewById(R.id.tvStatusTitle);
@@ -65,7 +67,10 @@ public class DashboardActivity extends Activity {
         
         ivHeaderAvatar = findViewById(R.id.ivHeaderAvatar);
         ivStatusAvatar = findViewById(R.id.ivStatusAvatar);
+        
         btnSupport = findViewById(R.id.btnSupport);
+        btnMyAttendanceGrid = findViewById(R.id.btnMyAttendanceGrid);
+        btnMyAttendanceNav = findViewById(R.id.btnMyAttendanceNav);
 
         prefs = getSharedPreferences("LibraryApp", Context.MODE_PRIVATE);
         savedUsername = prefs.getString("username", "");
@@ -78,23 +83,28 @@ public class DashboardActivity extends Activity {
 
         setDynamicGreeting();
 
-        // INSTANT PRELOAD FROM CACHE
         String cachedName = prefs.getString("cachedName", "Student");
         tvDashName.setText(cachedName);
         loadCachedProfileImage();
 
-        // NETWORK LISTENER
         setupRealtimeInternetCheck();
         
-        // FETCH DATA
         fetchProfileDataFromFirebase();
+        calculateMonthlyAttendance();
         checkTodayAttendance();
 
+        // BUTTON CLICKS
         btnSupport.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_DIAL);
             intent.setData(Uri.parse("tel:" + AppConfig.CONTACT_NUMBER));
             startActivity(intent);
         });
+
+        View.OnClickListener openAttendance = v -> {
+            startActivity(new Intent(DashboardActivity.this, AttendanceActivity.class));
+        };
+        btnMyAttendanceGrid.setOnClickListener(openAttendance);
+        btnMyAttendanceNav.setOnClickListener(openAttendance);
     }
 
     private void setupRealtimeInternetCheck() {
@@ -120,9 +130,7 @@ public class DashboardActivity extends Activity {
             }
         };
 
-        if (cm != null) {
-            cm.registerNetworkCallback(networkRequest, networkCallback);
-        }
+        if (cm != null) cm.registerNetworkCallback(networkRequest, networkCallback);
     }
 
     @Override
@@ -176,11 +184,8 @@ public class DashboardActivity extends Activity {
                         tvMembershipType.setText("Pending");
                     }
                     
-                    if (validTill != null && !validTill.isEmpty()) {
-                        tvValidity.setText("Valid till " + validTill);
-                    } else {
-                        tvValidity.setText("Valid till --");
-                    }
+                    if (validTill != null && !validTill.isEmpty()) tvValidity.setText("Valid till " + validTill);
+                    else tvValidity.setText("Valid till --");
 
                     String lastSavedUrl = prefs.getString("cachedImageUrl", "");
                     if (photoUrl != null && !photoUrl.isEmpty() && !photoUrl.equals(lastSavedUrl)) {
@@ -193,16 +198,30 @@ public class DashboardActivity extends Activity {
         });
     }
 
-    // 🔥 ULTIMATE DEBUG MODE: Yeh screen par exact path print karega!
+    private void calculateMonthlyAttendance() {
+        String currentMonthYear = new SimpleDateFormat("MMMM yyyy", Locale.ENGLISH).format(new Date());
+        
+        DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername);
+        attRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                int presentDays = 0;
+                for (DataSnapshot daySnap : snapshot.getChildren()) {
+                    String dateKey = daySnap.getKey(); 
+                    if (dateKey != null && dateKey.endsWith(currentMonthYear)) {
+                        presentDays++;
+                    }
+                }
+                if (tvDaysPresent != null) tvDaysPresent.setText(String.valueOf(presentDays));
+            }
+            @Override
+            public void onCancelled(DatabaseError error) {}
+        });
+    }
+
     private void checkTodayAttendance() {
         String todayDateString = new SimpleDateFormat("d MMMM yyyy", Locale.ENGLISH).format(new Date());
-        
         if (tvAttDate != null) tvAttDate.setText(todayDateString);
-
-        // 🚨 JADOO YAHAN HAI: Hum title me exact Firebase Path print karwa rahe hain
-        if (tvStatusTitle != null) {
-            tvStatusTitle.setText("Finding: Attendance/" + savedUsername + "/" + todayDateString);
-        }
 
         DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername).child(todayDateString);
         attRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -213,9 +232,6 @@ public class DashboardActivity extends Activity {
                     tvTodayStatus.setText("Marked ✓");
                     tvTodayStatus.setTextColor(android.graphics.Color.parseColor("#10B981"));
                     if (tvAttTime != null) tvAttTime.setText(checkInTime);
-                    
-                    // Agar mil gaya toh wapas normal text kar do
-                    if (tvStatusTitle != null) tvStatusTitle.setText("Today's Attendance"); 
                 } else {
                     tvTodayStatus.setText("Not Marked");
                     tvTodayStatus.setTextColor(android.graphics.Color.parseColor("#EF4444"));
@@ -223,10 +239,7 @@ public class DashboardActivity extends Activity {
                 }
             }
             @Override
-            public void onCancelled(DatabaseError error) {
-                // Agar Firebase block kar raha hai, toh yahan error aayega
-                if (tvStatusTitle != null) tvStatusTitle.setText("Error: " + error.getMessage());
-            }
+            public void onCancelled(DatabaseError error) {}
         });
     }
 
