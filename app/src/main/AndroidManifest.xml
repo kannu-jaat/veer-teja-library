@@ -50,6 +50,7 @@
 
 <activity android:name=".ForgotPasswordActivity" android:screenOrientation="portrait"/>
         
+<activity android:name=".AttendanceActivity" android:screenOrientation="portrait"/>
 
         <!-- 3. BACKGROUND NOTIFICATION SERVICE -->
         <service
