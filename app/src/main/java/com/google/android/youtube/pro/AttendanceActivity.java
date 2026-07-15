@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.GridLayout;
@@ -28,16 +29,17 @@ import java.util.Set;
 
 public class AttendanceActivity extends Activity {
 
-    private ImageView btnBack;
+    private ImageView btnBack, btnPrevMonth, btnNextMonth;
     private TextView tvMonthYearTitle, tvPresentCount, tvAbsentCount, tvUpcomingCount;
     private GridLayout calendarGrid;
     private String savedUsername;
+    private Calendar currentCal; // Mahina track karne ke liye
 
     // Status Constants
     private static final int STATUS_PRESENT = 1;
     private static final int STATUS_ABSENT = 2;
     private static final int STATUS_UPCOMING = 3;
-    private static final int STATUS_EMPTY = 0; // For blank padding cells
+    private static final int STATUS_EMPTY = 0; 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +47,9 @@ public class AttendanceActivity extends Activity {
         setContentView(R.layout.activity_attendance);
 
         btnBack = findViewById(R.id.btnBack);
+        btnPrevMonth = findViewById(R.id.btnPrevMonth);
+        btnNextMonth = findViewById(R.id.btnNextMonth);
+        
         tvMonthYearTitle = findViewById(R.id.tvMonthYearTitle);
         tvPresentCount = findViewById(R.id.tvPresentCount);
         tvAbsentCount = findViewById(R.id.tvAbsentCount);
@@ -56,14 +61,30 @@ public class AttendanceActivity extends Activity {
 
         btnBack.setOnClickListener(v -> finish());
 
-        // Start Fetching Data
+        // Calendar initialize karna (1st day of current month)
+        currentCal = Calendar.getInstance();
+        currentCal.set(Calendar.DAY_OF_MONTH, 1);
+
+        // Previous/Next Buttons Logic
+        btnPrevMonth.setOnClickListener(v -> {
+            currentCal.add(Calendar.MONTH, -1);
+            fetchCurrentMonthData();
+        });
+
+        btnNextMonth.setOnClickListener(v -> {
+            currentCal.add(Calendar.MONTH, 1);
+            fetchCurrentMonthData();
+        });
+
         fetchCurrentMonthData();
     }
 
     private void fetchCurrentMonthData() {
-        Calendar cal = Calendar.getInstance();
-        String currentMonthYear = new SimpleDateFormat("MMMM yyyy", Locale.ENGLISH).format(cal.getTime());
-        tvMonthYearTitle.setText(currentMonthYear); // E.g., "July 2026"
+        String currentMonthYear = new SimpleDateFormat("MMMM yyyy", Locale.ENGLISH).format(currentCal.getTime());
+        tvMonthYearTitle.setText(currentMonthYear); 
+        
+        // Data aane tak dabbe saaf kar do
+        calendarGrid.removeAllViews();
 
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername);
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -71,21 +92,18 @@ public class AttendanceActivity extends Activity {
             public void onDataChange(DataSnapshot snapshot) {
                 Set<Integer> presentDates = new HashSet<>();
 
-                // Firebase se is mahine ki saari dates filter karo
                 for (DataSnapshot snap : snapshot.getChildren()) {
-                    String dateKey = snap.getKey(); // E.g., "12 July 2026"
+                    String dateKey = snap.getKey(); 
                     if (dateKey != null && dateKey.endsWith(currentMonthYear)) {
                         try {
-                            int day = Integer.parseInt(dateKey.split(" ")[0]); // "12" nikalo
+                            int day = Integer.parseInt(dateKey.split(" ")[0]); 
                             presentDates.add(day);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
                 }
-                
-                // Data aane ke baad Calendar Generate karo
-                buildPremiumCalendar(cal, presentDates);
+                buildPremiumCalendar(presentDates);
             }
 
             @Override
@@ -95,30 +113,38 @@ public class AttendanceActivity extends Activity {
         });
     }
 
-    private void buildPremiumCalendar(Calendar currentCal, Set<Integer> presentDates) {
-        calendarGrid.removeAllViews(); // Purana grid saaf karo
+    private void buildPremiumCalendar(Set<Integer> presentDates) {
+        calendarGrid.removeAllViews(); 
 
-        int todayDay = currentCal.get(Calendar.DAY_OF_MONTH); // Aaj ki taarikh
+        Calendar realToday = Calendar.getInstance();
         int daysInMonth = currentCal.getActualMaximum(Calendar.DAY_OF_MONTH);
-        
-        // Mahine ka pehla din pata karo (1st taarikh ko Sunday tha ya Monday?)
-        currentCal.set(Calendar.DAY_OF_MONTH, 1);
-        int firstDayOfWeek = currentCal.get(Calendar.DAY_OF_WEEK); // Sunday=1, Monday=2...
+        int firstDayOfWeek = currentCal.get(Calendar.DAY_OF_WEEK); 
         int emptyCellsBeforeStart = firstDayOfWeek - 1; 
+
+        // Check karo ki bacha past ke mahine me hai ya future me
+        boolean isCurrentMonth = (currentCal.get(Calendar.YEAR) == realToday.get(Calendar.YEAR)) &&
+                                 (currentCal.get(Calendar.MONTH) == realToday.get(Calendar.MONTH));
+        boolean isPastMonth = (currentCal.get(Calendar.YEAR) < realToday.get(Calendar.YEAR)) || 
+                              (currentCal.get(Calendar.YEAR) == realToday.get(Calendar.YEAR) && currentCal.get(Calendar.MONTH) < realToday.get(Calendar.MONTH));
 
         int presentCount = 0;
         int absentCount = 0;
         int upcomingCount = 0;
 
-        // 1. Khali Dabbe (Empty Cells for padding)
         for (int i = 0; i < emptyCellsBeforeStart; i++) {
             calendarGrid.addView(createCalendarCell("", STATUS_EMPTY));
         }
 
-        // 2. Asli Taarikh Wale Dabbe (Dates)
         for (int day = 1; day <= daysInMonth; day++) {
             boolean isPresent = presentDates.contains(day);
-            boolean isPastOrToday = day <= todayDay;
+            
+            // Logic for Absent vs Upcoming
+            boolean isPastOrToday = false;
+            if (isPastMonth) {
+                isPastOrToday = true;
+            } else if (isCurrentMonth) {
+                isPastOrToday = day <= realToday.get(Calendar.DAY_OF_MONTH);
+            }
 
             int status;
             if (isPresent) {
@@ -135,65 +161,62 @@ public class AttendanceActivity extends Activity {
             calendarGrid.addView(createCalendarCell(String.valueOf(day), status));
         }
 
-        // 3. Update Summary Cards
         tvPresentCount.setText(String.valueOf(presentCount));
         tvAbsentCount.setText(String.valueOf(absentCount));
         tvUpcomingCount.setText(String.valueOf(upcomingCount));
     }
 
-    // 🔥 THE MAGIC CODE: Creating Premium UI Cells directly from Java
     private View createCalendarCell(String dayText, int status) {
-        // Layout Params (Weight = 1, equally distributed)
+        // UI MAGIC: Har dabbe ki fix height set karna taaki wo bada lage
+        int cellHeightPx = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 60, getResources().getDisplayMetrics());
+        
         GridLayout.LayoutParams params = new GridLayout.LayoutParams();
         params.width = 0; 
-        params.height = GridLayout.LayoutParams.WRAP_CONTENT;
+        params.height = cellHeightPx; // Ab dabba lamba aur premium lagega
         params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        params.setMargins(6, 6, 6, 6);
+        // Margin kam kiya taaki width zyada mil sake
+        params.setMargins(4, 6, 4, 6); 
 
-        // Main Box (Cell)
         LinearLayout cell = new LinearLayout(this);
         cell.setOrientation(LinearLayout.VERTICAL);
         cell.setLayoutParams(params);
-        cell.setPadding(12, 12, 12, 16);
+        cell.setPadding(8, 12, 8, 8); // Padding update ki hai
 
-        // Date Number Text
         TextView tvDate = new TextView(this);
         tvDate.setText(dayText);
-        tvDate.setTextSize(12f);
+        tvDate.setTextSize(13f);
         tvDate.setTextColor(Color.parseColor("#0F172A"));
 
-        // Status Dot
         View dot = new View(this);
-        LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(20, 20);
-        dotParams.topMargin = 16;
+        LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(16, 16); // Dot thodi choti ki premium look ke liye
+        dotParams.topMargin = 12;
         dotParams.gravity = Gravity.CENTER_HORIZONTAL;
         dot.setLayoutParams(dotParams);
 
-        // Setup Colors based on Screenshot Exact Matching
         GradientDrawable cellBg = new GradientDrawable();
         cellBg.setShape(GradientDrawable.RECTANGLE);
-        cellBg.setCornerRadius(16f); // Gol corners
+        cellBg.setCornerRadius(14f); 
         
         GradientDrawable dotBg = new GradientDrawable();
         dotBg.setShape(GradientDrawable.OVAL);
 
         if (status == STATUS_PRESENT) {
-            cellBg.setColor(Color.parseColor("#F0FDF4"));       // Light Green Background
-            cellBg.setStroke(2, Color.parseColor("#A7F3D0"));   // Green Border
-            dotBg.setColor(Color.parseColor("#10B981"));        // Solid Green Dot
+            cellBg.setColor(Color.parseColor("#F0FDF4"));      
+            cellBg.setStroke(2, Color.parseColor("#A7F3D0"));  
+            dotBg.setColor(Color.parseColor("#10B981"));       
         } 
         else if (status == STATUS_ABSENT) {
-            cellBg.setColor(Color.parseColor("#FEF2F2"));       // Light Red Background
-            cellBg.setStroke(2, Color.parseColor("#FECACA"));   // Red Border
-            dotBg.setColor(Color.parseColor("#EF4444"));        // Solid Red Dot
+            cellBg.setColor(Color.parseColor("#FEF2F2"));      
+            cellBg.setStroke(2, Color.parseColor("#FECACA"));  
+            dotBg.setColor(Color.parseColor("#EF4444"));       
         } 
         else if (status == STATUS_UPCOMING) {
-            cellBg.setColor(Color.parseColor("#FFFFFF"));       // White Background
-            cellBg.setStroke(2, Color.parseColor("#E2E8F0"));   // Gray Border
-            dotBg.setColor(Color.parseColor("#94A3B8"));        // Gray Dot
+            cellBg.setColor(Color.parseColor("#FFFFFF"));      
+            cellBg.setStroke(2, Color.parseColor("#E2E8F0"));  
+            dotBg.setColor(Color.parseColor("#94A3B8"));       
         }
         else if (status == STATUS_EMPTY) {
-            cellBg.setColor(Color.TRANSPARENT);                 // Invisible for empty blocks
+            cellBg.setColor(Color.TRANSPARENT);                
             dotBg.setColor(Color.TRANSPARENT);
             tvDate.setText("");
         }
