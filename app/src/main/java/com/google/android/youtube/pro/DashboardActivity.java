@@ -1,6 +1,5 @@
 package com.google.android.youtube.pro;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -19,6 +18,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.fragment.app.FragmentActivity; // 🚨 Extends FragmentActivity now
+
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -35,12 +36,16 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-public class DashboardActivity extends Activity {
+public class DashboardActivity extends FragmentActivity {
 
     private TextView tvGreeting, tvDashName, tvSeatNumber, tvMembershipType, tvValidity, tvInternetWarning;
     private TextView tvTodayStatus, tvStatusTitle, tvAttDate, tvAttTime, tvDaysPresent;
     private ImageView ivHeaderAvatar, ivStatusAvatar;
     private LinearLayout btnSupport, btnMyAttendanceGrid, btnMyAttendanceNav;
+    
+    // Zoom-in Containers
+    private LinearLayout dashboardBottomContent;
+    private View attendanceContainer;
     
     private SharedPreferences prefs;
     private String savedUsername;
@@ -71,6 +76,10 @@ public class DashboardActivity extends Activity {
         btnSupport = findViewById(R.id.btnSupport);
         btnMyAttendanceGrid = findViewById(R.id.btnMyAttendanceGrid);
         btnMyAttendanceNav = findViewById(R.id.btnMyAttendanceNav);
+        
+        // Container Setup
+        dashboardBottomContent = findViewById(R.id.dashboard_bottom_content);
+        attendanceContainer = findViewById(R.id.attendance_container);
 
         prefs = getSharedPreferences("LibraryApp", Context.MODE_PRIVATE);
         savedUsername = prefs.getString("username", "");
@@ -82,13 +91,11 @@ public class DashboardActivity extends Activity {
         }
 
         setDynamicGreeting();
-
         String cachedName = prefs.getString("cachedName", "Student");
         tvDashName.setText(cachedName);
         loadCachedProfileImage();
 
         setupRealtimeInternetCheck();
-        
         fetchProfileDataFromFirebase();
         calculateMonthlyAttendance();
         checkTodayAttendance();
@@ -100,13 +107,52 @@ public class DashboardActivity extends Activity {
             startActivity(intent);
         });
 
-        View.OnClickListener openAttendance = v -> {
-            startActivity(new Intent(DashboardActivity.this, AttendanceActivity.class));
-        };
+        // 🔥 OPEN CALENDAR FRAGMENT WITH ANIMATION
+        View.OnClickListener openAttendance = v -> openAttendanceWithAnimation();
         btnMyAttendanceGrid.setOnClickListener(openAttendance);
         btnMyAttendanceNav.setOnClickListener(openAttendance);
     }
 
+    private void openAttendanceWithAnimation() {
+        dashboardBottomContent.setVisibility(View.GONE);
+        attendanceContainer.setVisibility(View.VISIBLE);
+
+        attendanceContainer.setScaleX(0.5f);
+        attendanceContainer.setScaleY(0.5f);
+        attendanceContainer.setAlpha(0f);
+        attendanceContainer.animate()
+                .scaleX(1f).scaleY(1f).alpha(1f)
+                .setDuration(350) 
+                .start();
+
+        // Load the fragment
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.attendance_container, new AttendanceFragment())
+                .commit();
+    }
+
+    public void closeAttendanceWithAnimation() {
+        attendanceContainer.animate()
+                .scaleX(0.5f).scaleY(0.5f).alpha(0f)
+                .setDuration(300)
+                .withEndAction(() -> {
+                    attendanceContainer.setVisibility(View.GONE);
+                    dashboardBottomContent.setVisibility(View.VISIBLE);
+                    dashboardBottomContent.setAlpha(0f);
+                    dashboardBottomContent.animate().alpha(1f).setDuration(200).start();
+                }).start();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (attendanceContainer.getVisibility() == View.VISIBLE) {
+            closeAttendanceWithAnimation();
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    // --- (Baaki sab methods same rahenge) ---
     private void setupRealtimeInternetCheck() {
         cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm != null && cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnected()) {
@@ -114,31 +160,18 @@ public class DashboardActivity extends Activity {
         } else {
             tvInternetWarning.setVisibility(View.VISIBLE);
         }
-
-        NetworkRequest networkRequest = new NetworkRequest.Builder()
-                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                .build();
-
+        NetworkRequest networkRequest = new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build();
         networkCallback = new ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onAvailable(Network network) {
-                runOnUiThread(() -> tvInternetWarning.setVisibility(View.GONE));
-            }
-            @Override
-            public void onLost(Network network) {
-                runOnUiThread(() -> tvInternetWarning.setVisibility(View.VISIBLE));
-            }
+            @Override public void onAvailable(Network network) { runOnUiThread(() -> tvInternetWarning.setVisibility(View.GONE)); }
+            @Override public void onLost(Network network) { runOnUiThread(() -> tvInternetWarning.setVisibility(View.VISIBLE)); }
         };
-
         if (cm != null) cm.registerNetworkCallback(networkRequest, networkCallback);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (cm != null && networkCallback != null) {
-            cm.unregisterNetworkCallback(networkCallback);
-        }
+        if (cm != null && networkCallback != null) cm.unregisterNetworkCallback(networkCallback);
     }
 
     private void setDynamicGreeting() {
@@ -193,14 +226,12 @@ public class DashboardActivity extends Activity {
                     }
                 }
             }
-            @Override
-            public void onCancelled(DatabaseError error) {}
+            @Override public void onCancelled(DatabaseError error) {}
         });
     }
 
     private void calculateMonthlyAttendance() {
         String currentMonthYear = new SimpleDateFormat("MMMM yyyy", Locale.ENGLISH).format(new Date());
-        
         DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername);
         attRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -208,14 +239,11 @@ public class DashboardActivity extends Activity {
                 int presentDays = 0;
                 for (DataSnapshot daySnap : snapshot.getChildren()) {
                     String dateKey = daySnap.getKey(); 
-                    if (dateKey != null && dateKey.endsWith(currentMonthYear)) {
-                        presentDays++;
-                    }
+                    if (dateKey != null && dateKey.endsWith(currentMonthYear)) presentDays++;
                 }
                 if (tvDaysPresent != null) tvDaysPresent.setText(String.valueOf(presentDays));
             }
-            @Override
-            public void onCancelled(DatabaseError error) {}
+            @Override public void onCancelled(DatabaseError error) {}
         });
     }
 
@@ -238,8 +266,7 @@ public class DashboardActivity extends Activity {
                     if (tvAttTime != null) tvAttTime.setText("--:--");
                 }
             }
-            @Override
-            public void onCancelled(DatabaseError error) {}
+            @Override public void onCancelled(DatabaseError error) {}
         });
     }
 
@@ -266,9 +293,7 @@ public class DashboardActivity extends Activity {
                         if (ivStatusAvatar != null) ivStatusAvatar.setImageBitmap(myBitmap);
                     });
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception e) {}
         }).start();
     }
 }
