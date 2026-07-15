@@ -155,7 +155,7 @@
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
-                                android:src="@android:drawable/ic_media_previous"
+                                android:src="@drawable/abc_ic_ab_back_material
                                 android:tint="#0F172A"/>
                         </androidx.cardview.widget.CardView>
 
@@ -171,7 +171,7 @@
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
-                                android:src="@android:drawable/ic_media_next"
+                                android:src="@drawable/abc_vector_test
                                 android:tint="#0F172A"/>
                         </androidx.cardview.widget.CardView>
                     </LinearLayout>
