@@ -1,19 +1,24 @@
 package com.google.android.youtube.pro;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
+import androidx.fragment.app.Fragment;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -27,15 +32,13 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
-public class AttendanceActivity extends Activity {
+public class AttendanceFragment extends Fragment {
 
     private ImageView btnBack;
     private TextView tvMonthYearTitle, tvPresentCount, tvAbsentCount, tvUpcomingCount;
     private GridLayout calendarGrid;
     private CardView btnPrevMonth, btnNextMonth;
     private String savedUsername;
-    
-    // Naya global calendar jo month track karega
     private Calendar displayCalendar;
 
     private static final int STATUS_PRESENT = 1;
@@ -43,87 +46,81 @@ public class AttendanceActivity extends Activity {
     private static final int STATUS_UPCOMING = 3;
     private static final int STATUS_EMPTY = 0;
 
+    @Nullable
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_attendance);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.activity_attendance, container, false);
 
-        btnBack = findViewById(R.id.btnBack);
-        tvMonthYearTitle = findViewById(R.id.tvMonthYearTitle);
-        tvPresentCount = findViewById(R.id.tvPresentCount);
-        tvAbsentCount = findViewById(R.id.tvAbsentCount);
-        tvUpcomingCount = findViewById(R.id.tvUpcomingCount);
-        calendarGrid = findViewById(R.id.calendarGrid);
+        btnBack = view.findViewById(R.id.btnBack);
+        tvMonthYearTitle = view.findViewById(R.id.tvMonthYearTitle);
+        tvPresentCount = view.findViewById(R.id.tvPresentCount);
+        tvAbsentCount = view.findViewById(R.id.tvAbsentCount);
+        tvUpcomingCount = view.findViewById(R.id.tvUpcomingCount);
+        calendarGrid = view.findViewById(R.id.calendarGrid);
         
-        btnPrevMonth = findViewById(R.id.btnPrevMonth);
-        btnNextMonth = findViewById(R.id.btnNextMonth);
+        btnPrevMonth = view.findViewById(R.id.btnPrevMonth);
+        btnNextMonth = view.findViewById(R.id.btnNextMonth);
 
-        SharedPreferences prefs = getSharedPreferences("LibraryApp", Context.MODE_PRIVATE);
+        SharedPreferences prefs = requireActivity().getSharedPreferences("LibraryApp", Context.MODE_PRIVATE);
         savedUsername = prefs.getString("username", "");
         
-        displayCalendar = Calendar.getInstance(); // Aaj ki date set karega default
+        displayCalendar = Calendar.getInstance(); 
 
-        btnBack.setOnClickListener(v -> finish());
+        // Dashboard ki closeAnimation call karo back dabane par
+        btnBack.setOnClickListener(v -> {
+            if (getActivity() instanceof DashboardActivity) {
+                ((DashboardActivity) getActivity()).closeAttendanceWithAnimation();
+            }
+        });
         
-        // Month Navigation Listeners
         btnPrevMonth.setOnClickListener(v -> {
-            displayCalendar.add(Calendar.MONTH, -1); // Ek mahina pichhe
+            displayCalendar.add(Calendar.MONTH, -1);
             fetchMonthData();
         });
 
         btnNextMonth.setOnClickListener(v -> {
-            displayCalendar.add(Calendar.MONTH, 1); // Ek mahina aage
+            displayCalendar.add(Calendar.MONTH, 1);
             fetchMonthData();
         });
 
-        // Pehli baar app khulte hi fetch
         fetchMonthData();
+        return view;
     }
 
     private void fetchMonthData() {
-        // "July 2026" wala format
         String monthYearStr = new SimpleDateFormat("MMMM yyyy", Locale.ENGLISH).format(displayCalendar.getTime());
         tvMonthYearTitle.setText(monthYearStr); 
-        
-        calendarGrid.removeAllViews(); // Puraana data clean karo load hone se pehle
+        calendarGrid.removeAllViews(); 
 
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername);
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 Set<Integer> presentDates = new HashSet<>();
-
                 for (DataSnapshot snap : snapshot.getChildren()) {
                     String dateKey = snap.getKey();
                     if (dateKey != null && dateKey.endsWith(monthYearStr)) {
                         try {
                             int day = Integer.parseInt(dateKey.split(" ")[0]);
                             presentDates.add(day);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                        } catch (Exception e) {}
                     }
                 }
-                
                 buildPremiumCalendar(presentDates);
             }
 
             @Override
             public void onCancelled(DatabaseError error) {
-                Toast.makeText(AttendanceActivity.this, "Failed to load data", Toast.LENGTH_SHORT).show();
+                if(getContext() != null) Toast.makeText(getContext(), "Failed to load data", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void buildPremiumCalendar(Set<Integer> presentDates) {
         calendarGrid.removeAllViews(); 
-        
-        // Logic check karne ke liye original 'Today' ka reference chahiye (Taaki upcoming sahi dikhe)
         Calendar realToday = Calendar.getInstance();
-
         int daysInMonth = displayCalendar.getActualMaximum(Calendar.DAY_OF_MONTH);
         
-        // Month starting day check karo
         Calendar tempCal = (Calendar) displayCalendar.clone();
         tempCal.set(Calendar.DAY_OF_MONTH, 1);
         int firstDayOfWeek = tempCal.get(Calendar.DAY_OF_WEEK); 
@@ -133,17 +130,14 @@ public class AttendanceActivity extends Activity {
         int absentCount = 0;
         int upcomingCount = 0;
 
-        // 1. Khali Dabbe (Empty Start Padding)
         for (int i = 0; i < emptyCellsBeforeStart; i++) {
             calendarGrid.addView(createCalendarCell("", STATUS_EMPTY));
         }
 
-        // 2. Asli Dabbe
         for (int day = 1; day <= daysInMonth; day++) {
             boolean isPresent = presentDates.contains(day);
-            
-            // Check agar is mahine ka din, asli aaj ke din se chhota/barabar hai (ya purane mahine ka hai)
             boolean isPastOrToday;
+            
             if (displayCalendar.get(Calendar.YEAR) < realToday.get(Calendar.YEAR)) {
                 isPastOrToday = true;
             } else if (displayCalendar.get(Calendar.YEAR) > realToday.get(Calendar.YEAR)) {
@@ -183,23 +177,21 @@ public class AttendanceActivity extends Activity {
         params.width = 0; 
         params.height = GridLayout.LayoutParams.WRAP_CONTENT;
         params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        // 🔥 WIDER CARDS: Margins kam ki hain taaki cell chauda ho
         params.setMargins(4, 8, 4, 8); 
 
-        LinearLayout cell = new LinearLayout(this);
+        LinearLayout cell = new LinearLayout(requireContext());
         cell.setOrientation(LinearLayout.VERTICAL);
         cell.setLayoutParams(params);
-        // 🔥 WIDER & TALLER FEEL: Padding ko theek se balance kiya hai
         cell.setPadding(0, 16, 0, 16); 
         cell.setGravity(Gravity.CENTER);
 
-        TextView tvDate = new TextView(this);
+        TextView tvDate = new TextView(requireContext());
         tvDate.setText(dayText);
         tvDate.setTextSize(13f);
         tvDate.setTextColor(Color.parseColor("#0F172A"));
         tvDate.setGravity(Gravity.CENTER);
 
-        View dot = new View(this);
+        View dot = new View(requireContext());
         LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(16, 16);
         dotParams.topMargin = 12;
         dot.setLayoutParams(dotParams);
