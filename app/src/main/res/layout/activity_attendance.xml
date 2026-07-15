@@ -6,7 +6,6 @@
     android:background="#F8FAFC"
     android:orientation="vertical">
 
-    <!-- TOP HEADER -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -54,7 +53,6 @@
             android:orientation="vertical"
             android:padding="16dp">
 
-            <!-- SUMMARY CARDS -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -108,7 +106,6 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- WHITE CALENDAR CARD -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -124,7 +121,6 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <!-- 🔥 PREMIUM MONTH NAVIGATION HEADER 🔥 -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -142,7 +138,6 @@
                             android:textSize="18sp"
                             android:textStyle="bold"/>
 
-                        <!-- Previous Month Button -->
                         <androidx.cardview.widget.CardView
                             android:id="@+id/btnPrevMonth"
                             android:layout_width="36dp"
@@ -159,7 +154,6 @@
                                 android:tint="#0F172A"/>
                         </androidx.cardview.widget.CardView>
 
-                        <!-- Next Month Button -->
                         <androidx.cardview.widget.CardView
                             android:id="@+id/btnNextMonth"
                             android:layout_width="36dp"
@@ -176,7 +170,6 @@
                         </androidx.cardview.widget.CardView>
                     </LinearLayout>
 
-                    <!-- Weekdays Header -->
                     <GridLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -191,7 +184,6 @@
                         <TextView android:text="Sat" android:layout_columnWeight="1" android:gravity="center" android:textColor="#64748B" android:textSize="11sp"/>
                     </GridLayout>
 
-                    <!-- DYNAMIC CALENDAR GRID -->
                     <GridLayout
                         android:id="@+id/calendarGrid"
                         android:layout_width="match_parent"
