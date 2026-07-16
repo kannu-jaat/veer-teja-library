@@ -327,14 +327,14 @@
             android:orientation="horizontal"
             android:paddingTop="6dp">
             
-            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal">
-                <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_menu_view" android:tint="#FBBF24"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Dashboard" android:textColor="#FBBF24" android:textSize="9sp" android:layout_marginTop="2dp"/>
+            <LinearLayout android:id="@+id/btnDashboardNav" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal" android:clickable="false">
+                <ImageView android:id="@+id/ivDashboardIcon" android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_menu_view" android:tint="#FBBF24"/>
+                <TextView android:id="@+id/tvDashboardText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Dashboard" android:textColor="#FBBF24" android:textSize="9sp" android:layout_marginTop="2dp"/>
             </LinearLayout>
 
             <LinearLayout android:id="@+id/btnMyAttendanceNav" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal">
-                <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_menu_today" android:tint="#94A3B8"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Attend" android:textColor="#94A3B8" android:textSize="9sp" android:layout_marginTop="2dp"/>
+                <ImageView android:id="@+id/ivAttendIcon" android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_menu_today" android:tint="#94A3B8"/>
+                <TextView android:id="@+id/tvAttendText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Attend" android:textColor="#94A3B8" android:textSize="9sp" android:layout_marginTop="2dp"/>
             </LinearLayout>
 
             <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1"/>
