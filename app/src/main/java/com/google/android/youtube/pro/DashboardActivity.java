@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -18,7 +19,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.fragment.app.FragmentActivity; // 🚨 Extends FragmentActivity now
+import androidx.fragment.app.FragmentActivity; 
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -41,9 +42,13 @@ public class DashboardActivity extends FragmentActivity {
     private TextView tvGreeting, tvDashName, tvSeatNumber, tvMembershipType, tvValidity, tvInternetWarning;
     private TextView tvTodayStatus, tvStatusTitle, tvAttDate, tvAttTime, tvDaysPresent;
     private ImageView ivHeaderAvatar, ivStatusAvatar;
-    private LinearLayout btnSupport, btnMyAttendanceGrid, btnMyAttendanceNav;
+    private LinearLayout btnSupport, btnMyAttendanceGrid;
     
-    // Zoom-in Containers
+    // Bottom Nav Variables
+    private LinearLayout btnDashboardNav, btnMyAttendanceNav;
+    private ImageView ivDashboardIcon, ivAttendIcon;
+    private TextView tvDashboardText, tvAttendText;
+
     private LinearLayout dashboardBottomContent;
     private View attendanceContainer;
     
@@ -64,20 +69,24 @@ public class DashboardActivity extends FragmentActivity {
         tvMembershipType = findViewById(R.id.tvMembershipType);
         tvValidity = findViewById(R.id.tvValidity);
         tvDaysPresent = findViewById(R.id.tvDaysPresent);
-        
         tvTodayStatus = findViewById(R.id.tvTodayStatus);
         tvStatusTitle = findViewById(R.id.tvStatusTitle);
         tvAttDate = findViewById(R.id.tvAttDate);
         tvAttTime = findViewById(R.id.tvAttTime);
-        
         ivHeaderAvatar = findViewById(R.id.ivHeaderAvatar);
         ivStatusAvatar = findViewById(R.id.ivStatusAvatar);
         
         btnSupport = findViewById(R.id.btnSupport);
         btnMyAttendanceGrid = findViewById(R.id.btnMyAttendanceGrid);
-        btnMyAttendanceNav = findViewById(R.id.btnMyAttendanceNav);
         
-        // Container Setup
+        // Nav IDs
+        btnDashboardNav = findViewById(R.id.btnDashboardNav);
+        btnMyAttendanceNav = findViewById(R.id.btnMyAttendanceNav);
+        ivDashboardIcon = findViewById(R.id.ivDashboardIcon);
+        tvDashboardText = findViewById(R.id.tvDashboardText);
+        ivAttendIcon = findViewById(R.id.ivAttendIcon);
+        tvAttendText = findViewById(R.id.tvAttendText);
+        
         dashboardBottomContent = findViewById(R.id.dashboard_bottom_content);
         attendanceContainer = findViewById(R.id.attendance_container);
 
@@ -100,20 +109,49 @@ public class DashboardActivity extends FragmentActivity {
         calculateMonthlyAttendance();
         checkTodayAttendance();
 
-        // BUTTON CLICKS
         btnSupport.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_DIAL);
             intent.setData(Uri.parse("tel:" + AppConfig.CONTACT_NUMBER));
             startActivity(intent);
         });
 
-        // 🔥 OPEN CALENDAR FRAGMENT WITH ANIMATION
+        // ATTEND Clicks
         View.OnClickListener openAttendance = v -> openAttendanceWithAnimation();
         btnMyAttendanceGrid.setOnClickListener(openAttendance);
         btnMyAttendanceNav.setOnClickListener(openAttendance);
+
+        // DASHBOARD Click
+        btnDashboardNav.setOnClickListener(v -> {
+            if (attendanceContainer.getVisibility() == View.VISIBLE) {
+                closeAttendanceWithAnimation();
+            }
+        });
+    }
+
+    // COLOR UPDATE & SPAM CLICK PREVENTION LOGIC
+    private void updateBottomNavState(boolean isDashboardOpen) {
+        if (isDashboardOpen) {
+            ivDashboardIcon.setColorFilter(Color.parseColor("#FBBF24"));
+            tvDashboardText.setTextColor(Color.parseColor("#FBBF24"));
+            btnDashboardNav.setClickable(false); // Dashboard disable
+
+            ivAttendIcon.setColorFilter(Color.parseColor("#94A3B8"));
+            tvAttendText.setTextColor(Color.parseColor("#94A3B8"));
+            btnMyAttendanceNav.setClickable(true); // Attend enable
+        } else {
+            ivDashboardIcon.setColorFilter(Color.parseColor("#94A3B8"));
+            tvDashboardText.setTextColor(Color.parseColor("#94A3B8"));
+            btnDashboardNav.setClickable(true); // Dashboard enable
+
+            ivAttendIcon.setColorFilter(Color.parseColor("#FBBF24"));
+            tvAttendText.setTextColor(Color.parseColor("#FBBF24"));
+            btnMyAttendanceNav.setClickable(false); // Attend disable
+        }
     }
 
     private void openAttendanceWithAnimation() {
+        updateBottomNavState(false); // Make Attend Yellow
+        
         dashboardBottomContent.setVisibility(View.GONE);
         attendanceContainer.setVisibility(View.VISIBLE);
 
@@ -125,13 +163,14 @@ public class DashboardActivity extends FragmentActivity {
                 .setDuration(350) 
                 .start();
 
-        // Load the fragment
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.attendance_container, new AttendanceFragment())
                 .commit();
     }
 
     public void closeAttendanceWithAnimation() {
+        updateBottomNavState(true); // Make Dashboard Yellow
+        
         attendanceContainer.animate()
                 .scaleX(0.5f).scaleY(0.5f).alpha(0f)
                 .setDuration(300)
@@ -152,7 +191,7 @@ public class DashboardActivity extends FragmentActivity {
         }
     }
 
-    // --- (Baaki sab methods same rahenge) ---
+    // --- Backend Logic Same as Before ---
     private void setupRealtimeInternetCheck() {
         cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm != null && cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnected()) {
@@ -212,7 +251,7 @@ public class DashboardActivity extends FragmentActivity {
 
                     if (membership != null && !membership.isEmpty()) {
                         tvMembershipType.setText(membership);
-                        tvMembershipType.setTextColor(android.graphics.Color.parseColor("#FBBF24"));
+                        tvMembershipType.setTextColor(Color.parseColor("#FBBF24"));
                     } else {
                         tvMembershipType.setText("Pending");
                     }
@@ -258,11 +297,11 @@ public class DashboardActivity extends FragmentActivity {
                 if (snapshot.exists()) {
                     String checkInTime = snapshot.child("checkIn").getValue(String.class);
                     tvTodayStatus.setText("Marked ✓");
-                    tvTodayStatus.setTextColor(android.graphics.Color.parseColor("#10B981"));
+                    tvTodayStatus.setTextColor(Color.parseColor("#10B981"));
                     if (tvAttTime != null) tvAttTime.setText(checkInTime);
                 } else {
                     tvTodayStatus.setText("Not Marked");
-                    tvTodayStatus.setTextColor(android.graphics.Color.parseColor("#EF4444"));
+                    tvTodayStatus.setTextColor(Color.parseColor("#EF4444"));
                     if (tvAttTime != null) tvAttTime.setText("--:--");
                 }
             }
