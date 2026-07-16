@@ -34,7 +34,6 @@ import java.util.Set;
 
 public class AttendanceFragment extends Fragment {
 
-    private ImageView btnBack;
     private TextView tvMonthYearTitle, tvPresentCount, tvAbsentCount, tvUpcomingCount;
     private GridLayout calendarGrid;
     private CardView btnPrevMonth, btnNextMonth;
@@ -51,13 +50,11 @@ public class AttendanceFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.activity_attendance, container, false);
 
-        btnBack = view.findViewById(R.id.btnBack);
         tvMonthYearTitle = view.findViewById(R.id.tvMonthYearTitle);
         tvPresentCount = view.findViewById(R.id.tvPresentCount);
         tvAbsentCount = view.findViewById(R.id.tvAbsentCount);
         tvUpcomingCount = view.findViewById(R.id.tvUpcomingCount);
         calendarGrid = view.findViewById(R.id.calendarGrid);
-        
         btnPrevMonth = view.findViewById(R.id.btnPrevMonth);
         btnNextMonth = view.findViewById(R.id.btnNextMonth);
 
@@ -65,13 +62,6 @@ public class AttendanceFragment extends Fragment {
         savedUsername = prefs.getString("username", "");
         
         displayCalendar = Calendar.getInstance(); 
-
-        // Dashboard ki closeAnimation call karo back dabane par
-        btnBack.setOnClickListener(v -> {
-            if (getActivity() instanceof DashboardActivity) {
-                ((DashboardActivity) getActivity()).closeAttendanceWithAnimation();
-            }
-        });
         
         btnPrevMonth.setOnClickListener(v -> {
             displayCalendar.add(Calendar.MONTH, -1);
@@ -177,12 +167,14 @@ public class AttendanceFragment extends Fragment {
         params.width = 0; 
         params.height = GridLayout.LayoutParams.WRAP_CONTENT;
         params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
-        params.setMargins(4, 8, 4, 8); 
+        // 🔥 Margins ko vertical me kam kiya hai (Top aur Bottom sirf 4dp hain)
+        params.setMargins(2, 4, 2, 4); 
 
         LinearLayout cell = new LinearLayout(requireContext());
         cell.setOrientation(LinearLayout.VERTICAL);
         cell.setLayoutParams(params);
-        cell.setPadding(0, 16, 0, 16); 
+        // 🔥 Vertical Padding ko squeeze kiya hai (Top/Bottom 10dp ki jagah 8dp kar diya)
+        cell.setPadding(0, 8, 0, 8); 
         cell.setGravity(Gravity.CENTER);
 
         TextView tvDate = new TextView(requireContext());
@@ -193,7 +185,8 @@ public class AttendanceFragment extends Fragment {
 
         View dot = new View(requireContext());
         LinearLayout.LayoutParams dotParams = new LinearLayout.LayoutParams(16, 16);
-        dotParams.topMargin = 12;
+        // Dot ko thoda upar khiskaya hai
+        dotParams.topMargin = 8;
         dot.setLayoutParams(dotParams);
 
         GradientDrawable cellBg = new GradientDrawable();
