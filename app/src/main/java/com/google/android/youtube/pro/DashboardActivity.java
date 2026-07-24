@@ -18,7 +18,10 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.cardview.widget.CardView;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity; 
 
 import com.google.firebase.database.DataSnapshot;
@@ -41,30 +44,63 @@ public class DashboardActivity extends FragmentActivity {
 
     private TextView tvGreeting, tvDashName, tvSeatNumber, tvMembershipType, tvValidity, tvInternetWarning;
     private TextView tvTodayStatus, tvStatusTitle, tvAttDate, tvAttTime, tvDaysPresent;
-    private ImageView ivHeaderAvatar, ivStatusAvatar;
-    private LinearLayout btnSupport, btnMyAttendanceGrid;
+    private ImageView ivHeaderAvatar, ivStatusAvatar, btnNotifications;
     
-    // Bottom Nav Variables
-    private LinearLayout btnDashboardNav, btnMyAttendanceNav;
-    private ImageView ivDashboardIcon, ivAttendIcon;
-    private TextView tvDashboardText, tvAttendText;
+    // All Grid Buttons
+    private LinearLayout btnMarkAttendGrid, btnMyAttendanceGrid, btnMySeatGrid, btnFeesGrid;
+    private LinearLayout btnNoticesGrid, btnRulesGrid, btnProfileGrid, btnSupportGrid;
+    private CardView cvLatestNotice;
+    
+    // Bottom Nav Elements
+    private LinearLayout btnDashboardNav, btnMyAttendanceNav, btnPaymentsNav, btnMoreNav;
+    private ImageView ivDashboardIcon, ivAttendIcon, ivPaymentsIcon, ivMoreIcon;
+    private TextView tvDashboardText, tvAttendText, tvPaymentsText, tvMoreText;
+    private CardView btnCenterCameraFab;
 
     private LinearLayout dashboardBottomContent;
-    private View attendanceContainer;
+    private View fragmentContainer; // Generic container for all fragments
     
     private SharedPreferences prefs;
     private String savedUsername;
     private ConnectivityManager.NetworkCallback networkCallback;
     private ConnectivityManager cm;
 
+    // 🔥 SMART NAVIGATION STATES
+    private long lastClickTime = 0;
+    private static final int STATE_DASHBOARD = 0;
+    private static final int STATE_ATTENDANCE = 1;
+    private static final int STATE_PAYMENTS = 2;
+    private static final int STATE_MORE = 3;
+    private int currentState = STATE_DASHBOARD;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.dashboard);
 
+        initializeViews();
+        setupSharedPreferences();
+        setupRealtimeInternetCheck();
+        
+        if (savedUsername.isEmpty()) {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+
+        setupUIInfo();
+        setupClickListeners();
+    }
+
+    private void initializeViews() {
+        // Top Header
         tvInternetWarning = findViewById(R.id.tvInternetWarning);
         tvGreeting = findViewById(R.id.tvGreeting);
         tvDashName = findViewById(R.id.tvDashName);
+        ivHeaderAvatar = findViewById(R.id.ivHeaderAvatar);
+        btnNotifications = findViewById(R.id.btnNotifications);
+        
+        // Status Cards
         tvSeatNumber = findViewById(R.id.tvSeatNumber);
         tvMembershipType = findViewById(R.id.tvMembershipType);
         tvValidity = findViewById(R.id.tvValidity);
@@ -73,109 +109,171 @@ public class DashboardActivity extends FragmentActivity {
         tvStatusTitle = findViewById(R.id.tvStatusTitle);
         tvAttDate = findViewById(R.id.tvAttDate);
         tvAttTime = findViewById(R.id.tvAttTime);
-        ivHeaderAvatar = findViewById(R.id.ivHeaderAvatar);
         ivStatusAvatar = findViewById(R.id.ivStatusAvatar);
+        cvLatestNotice = findViewById(R.id.cvLatestNotice);
         
-        btnSupport = findViewById(R.id.btnSupport);
+        // Grid Buttons
+        btnMarkAttendGrid = findViewById(R.id.btnMarkAttendGrid);
         btnMyAttendanceGrid = findViewById(R.id.btnMyAttendanceGrid);
+        btnMySeatGrid = findViewById(R.id.btnMySeatGrid);
+        btnFeesGrid = findViewById(R.id.btnFeesGrid);
+        btnNoticesGrid = findViewById(R.id.btnNoticesGrid);
+        btnRulesGrid = findViewById(R.id.btnRulesGrid);
+        btnProfileGrid = findViewById(R.id.btnProfileGrid);
+        btnSupportGrid = findViewById(R.id.btnSupportGrid);
         
-        // Nav IDs
+        // Bottom Nav Buttons
         btnDashboardNav = findViewById(R.id.btnDashboardNav);
         btnMyAttendanceNav = findViewById(R.id.btnMyAttendanceNav);
+        btnPaymentsNav = findViewById(R.id.btnPaymentsNav);
+        btnMoreNav = findViewById(R.id.btnMoreNav);
+        btnCenterCameraFab = findViewById(R.id.btnCenterCameraFab);
+        
+        // Bottom Nav Icons & Texts
         ivDashboardIcon = findViewById(R.id.ivDashboardIcon);
         tvDashboardText = findViewById(R.id.tvDashboardText);
         ivAttendIcon = findViewById(R.id.ivAttendIcon);
         tvAttendText = findViewById(R.id.tvAttendText);
+        ivPaymentsIcon = findViewById(R.id.ivPaymentsIcon);
+        tvPaymentsText = findViewById(R.id.tvPaymentsText);
+        ivMoreIcon = findViewById(R.id.ivMoreIcon);
+        tvMoreText = findViewById(R.id.tvMoreText);
         
+        // Containers
         dashboardBottomContent = findViewById(R.id.dashboard_bottom_content);
-        attendanceContainer = findViewById(R.id.attendance_container);
+        fragmentContainer = findViewById(R.id.fragment_container); // Updated ID
+    }
 
+    private void setupSharedPreferences() {
         prefs = getSharedPreferences("LibraryApp", Context.MODE_PRIVATE);
         savedUsername = prefs.getString("username", "");
+    }
 
-        if (savedUsername.isEmpty()) {
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
-            return;
-        }
-
+    private void setupUIInfo() {
         setDynamicGreeting();
         String cachedName = prefs.getString("cachedName", "Student");
         tvDashName.setText(cachedName);
         loadCachedProfileImage();
-
-        setupRealtimeInternetCheck();
         fetchProfileDataFromFirebase();
         calculateMonthlyAttendance();
         checkTodayAttendance();
+    }
 
-        btnSupport.setOnClickListener(v -> {
+    // 🔥 CENTRAL CLICK ROUTER (FUTURE-PROOF)
+    private void setupClickListeners() {
+        // ACTIVE FEATURES (Will load fragments/actions)
+        btnDashboardNav.setOnClickListener(v -> handleNavigation(STATE_DASHBOARD));
+        
+        btnMyAttendanceGrid.setOnClickListener(v -> handleNavigation(STATE_ATTENDANCE));
+        btnMyAttendanceNav.setOnClickListener(v -> handleNavigation(STATE_ATTENDANCE));
+        
+        btnFeesGrid.setOnClickListener(v -> handleNavigation(STATE_PAYMENTS));
+        btnPaymentsNav.setOnClickListener(v -> handleNavigation(STATE_PAYMENTS));
+
+        // MORE NAV
+        btnMoreNav.setOnClickListener(v -> handleNavigation(STATE_MORE));
+
+        // SUPPORT EXTERNAL INTENT
+        btnSupportGrid.setOnClickListener(v -> {
+            if (isSpamClick()) return;
             Intent intent = new Intent(Intent.ACTION_DIAL);
             intent.setData(Uri.parse("tel:" + AppConfig.CONTACT_NUMBER));
             startActivity(intent);
         });
 
-        // ATTEND Clicks
-        View.OnClickListener openAttendance = v -> openAttendanceWithAnimation();
-        btnMyAttendanceGrid.setOnClickListener(openAttendance);
-        btnMyAttendanceNav.setOnClickListener(openAttendance);
-
-        // DASHBOARD Click
-        btnDashboardNav.setOnClickListener(v -> {
-            if (attendanceContainer.getVisibility() == View.VISIBLE) {
-                closeAttendanceWithAnimation();
-            }
-        });
+        // INACTIVE FEATURES (Show Coming Soon)
+        View.OnClickListener comingSoonListener = v -> {
+            if (!isSpamClick()) Toast.makeText(this, "Feature coming soon!", Toast.LENGTH_SHORT).show();
+        };
+        
+        btnMarkAttendGrid.setOnClickListener(comingSoonListener);
+        btnMySeatGrid.setOnClickListener(comingSoonListener);
+        btnNoticesGrid.setOnClickListener(comingSoonListener);
+        btnRulesGrid.setOnClickListener(comingSoonListener);
+        btnProfileGrid.setOnClickListener(comingSoonListener);
+        btnNotifications.setOnClickListener(comingSoonListener);
+        cvLatestNotice.setOnClickListener(comingSoonListener);
+        btnCenterCameraFab.setOnClickListener(comingSoonListener);
     }
 
-    // COLOR UPDATE & SPAM CLICK PREVENTION LOGIC
-    private void updateBottomNavState(boolean isDashboardOpen) {
-        if (isDashboardOpen) {
-            ivDashboardIcon.setColorFilter(Color.parseColor("#FBBF24"));
-            tvDashboardText.setTextColor(Color.parseColor("#FBBF24"));
-            btnDashboardNav.setClickable(false); // Dashboard disable
+    private boolean isSpamClick() {
+        if (System.currentTimeMillis() - lastClickTime < 600) {
+            return true;
+        }
+        lastClickTime = System.currentTimeMillis();
+        return false;
+    }
 
-            ivAttendIcon.setColorFilter(Color.parseColor("#94A3B8"));
-            tvAttendText.setTextColor(Color.parseColor("#94A3B8"));
-            btnMyAttendanceNav.setClickable(true); // Attend enable
-        } else {
-            ivDashboardIcon.setColorFilter(Color.parseColor("#94A3B8"));
-            tvDashboardText.setTextColor(Color.parseColor("#94A3B8"));
-            btnDashboardNav.setClickable(true); // Dashboard enable
+    private void handleNavigation(int targetState) {
+        if (isSpamClick() || currentState == targetState) return;
 
-            ivAttendIcon.setColorFilter(Color.parseColor("#FBBF24"));
-            tvAttendText.setTextColor(Color.parseColor("#FBBF24"));
-            btnMyAttendanceNav.setClickable(false); // Attend disable
+        currentState = targetState;
+        updateBottomNavColors(targetState);
+
+        if (targetState == STATE_DASHBOARD) {
+            closeFragmentWithAnimation();
+        } else if (targetState == STATE_ATTENDANCE) {
+            openFragmentWithAnimation(new AttendanceFragment());
+        } else if (targetState == STATE_PAYMENTS) {
+            openFragmentWithAnimation(new FeesFragment());
+        } else if (targetState == STATE_MORE) {
+            // TODO: Open MoreFragment when created in future
+            Toast.makeText(this, "More Settings Menu Coming Soon", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void openAttendanceWithAnimation() {
-        updateBottomNavState(false); // Make Attend Yellow
-        
-        dashboardBottomContent.setVisibility(View.GONE);
-        attendanceContainer.setVisibility(View.VISIBLE);
+    private void updateBottomNavColors(int activeState) {
+        // Reset ALL to Gray/Disabled
+        int grayColor = Color.parseColor("#94A3B8");
+        ivDashboardIcon.setColorFilter(grayColor); tvDashboardText.setTextColor(grayColor);
+        ivAttendIcon.setColorFilter(grayColor);    tvAttendText.setTextColor(grayColor);
+        ivPaymentsIcon.setColorFilter(grayColor);  tvPaymentsText.setTextColor(grayColor);
+        ivMoreIcon.setColorFilter(grayColor);      tvMoreText.setTextColor(grayColor);
 
-        attendanceContainer.setScaleX(0.5f);
-        attendanceContainer.setScaleY(0.5f);
-        attendanceContainer.setAlpha(0f);
-        attendanceContainer.animate()
+        // Set Active to Yellow
+        int activeColor = Color.parseColor("#FBBF24");
+        switch (activeState) {
+            case STATE_DASHBOARD:
+                ivDashboardIcon.setColorFilter(activeColor); tvDashboardText.setTextColor(activeColor);
+                break;
+            case STATE_ATTENDANCE:
+                ivAttendIcon.setColorFilter(activeColor); tvAttendText.setTextColor(activeColor);
+                break;
+            case STATE_PAYMENTS:
+                ivPaymentsIcon.setColorFilter(activeColor); tvPaymentsText.setTextColor(activeColor);
+                break;
+            case STATE_MORE:
+                ivMoreIcon.setColorFilter(activeColor); tvMoreText.setTextColor(activeColor);
+                break;
+        }
+    }
+
+    private void openFragmentWithAnimation(Fragment fragment) {
+        dashboardBottomContent.setVisibility(View.GONE);
+        fragmentContainer.setVisibility(View.VISIBLE);
+
+        fragmentContainer.setScaleX(0.5f);
+        fragmentContainer.setScaleY(0.5f);
+        fragmentContainer.setAlpha(0f);
+        fragmentContainer.animate()
                 .scaleX(1f).scaleY(1f).alpha(1f)
                 .setDuration(350) 
                 .start();
 
         getSupportFragmentManager().beginTransaction()
-                .replace(R.id.attendance_container, new AttendanceFragment())
+                .replace(R.id.fragment_container, fragment)
                 .commit();
     }
 
-    public void closeAttendanceWithAnimation() {
-        updateBottomNavState(true); // Make Dashboard Yellow
+    public void closeFragmentWithAnimation() {
+        currentState = STATE_DASHBOARD;
+        updateBottomNavColors(STATE_DASHBOARD);
         
-        attendanceContainer.animate()
+        fragmentContainer.animate()
                 .scaleX(0.5f).scaleY(0.5f).alpha(0f)
                 .setDuration(300)
                 .withEndAction(() -> {
-                    attendanceContainer.setVisibility(View.GONE);
+                    fragmentContainer.setVisibility(View.GONE);
                     dashboardBottomContent.setVisibility(View.VISIBLE);
                     dashboardBottomContent.setAlpha(0f);
                     dashboardBottomContent.animate().alpha(1f).setDuration(200).start();
@@ -184,14 +282,14 @@ public class DashboardActivity extends FragmentActivity {
 
     @Override
     public void onBackPressed() {
-        if (attendanceContainer.getVisibility() == View.VISIBLE) {
-            closeAttendanceWithAnimation();
+        if (fragmentContainer.getVisibility() == View.VISIBLE) {
+            closeFragmentWithAnimation();
         } else {
             super.onBackPressed();
         }
     }
 
-    // --- Backend Logic Same as Before ---
+    // --- Firebase & Utility Methods Below ---
     private void setupRealtimeInternetCheck() {
         cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm != null && cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnected()) {
