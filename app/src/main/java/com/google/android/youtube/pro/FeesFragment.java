@@ -117,9 +117,8 @@ public class FeesFragment extends Fragment {
     }
 
     private void addHistoryRow(String monthName, String payDate, Long amount) {
-        View rowView = LayoutInflater.from(getContext()).inflate(R.layout.item_payment_history, paymentHistoryContainer, false);
+        // Error wali line yahan se hata di gayi hai. Direct Java me layout banega ab.
         
-        // Dynamically creating a clean layout for the row to avoid needing another XML file
         LinearLayout row = new LinearLayout(getContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(16, 24, 16, 24);
