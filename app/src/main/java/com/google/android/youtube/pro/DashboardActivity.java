@@ -345,7 +345,7 @@ public class DashboardActivity extends FragmentActivity {
                         prefs.edit().putString("cachedName", fullName).apply();
                     }
                     if (seat != null && !seat.isEmpty()) tvSeatNumber.setText(seat);
-                    else tvSeatNumber.setText("--");
+                    else tvSeatNumber.setText(" ");
 
                     if (membership != null && !membership.isEmpty()) {
                         tvMembershipType.setText(membership);
@@ -385,7 +385,7 @@ public class DashboardActivity extends FragmentActivity {
     }
 
     private void checkTodayAttendance() {
-        String todayDateString = new SimpleDateFormat("d MMMM yyyy", Locale.ENGLISH).format(new Date());
+        String todayDateString = new SimpleDateFormat("dd MMMM yyyy", Locale.ENGLISH).format(new Date());
         if (tvAttDate != null) tvAttDate.setText(todayDateString);
 
         DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername).child(todayDateString);
@@ -400,7 +400,7 @@ public class DashboardActivity extends FragmentActivity {
                 } else {
                     tvTodayStatus.setText("Not Marked");
                     tvTodayStatus.setTextColor(Color.parseColor("#EF4444"));
-                    if (tvAttTime != null) tvAttTime.setText("--:--");
+                    if (tvAttTime != null) tvAttTime.setText("__:__");
                 }
             }
             @Override public void onCancelled(DatabaseError error) {}
