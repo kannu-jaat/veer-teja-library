@@ -71,6 +71,7 @@ public class DashboardActivity extends FragmentActivity {
     private static final int STATE_ATTENDANCE = 1;
     private static final int STATE_PAYMENTS = 2;
     private static final int STATE_MORE = 3;
+private static final int STATE_RULES = 4;
     private int currentState = STATE_DASHBOARD;
 
     @Override
@@ -189,7 +190,8 @@ public class DashboardActivity extends FragmentActivity {
         btnMarkAttendGrid.setOnClickListener(comingSoonListener);
         btnMySeatGrid.setOnClickListener(comingSoonListener);
         btnNoticesGrid.setOnClickListener(comingSoonListener);
-        btnRulesGrid.setOnClickListener(comingSoonListener);
+
+btnRulesGrid.setOnClickListener(v -> handleNavigation(STATE_RULES));
         btnProfileGrid.setOnClickListener(comingSoonListener);
         btnNotifications.setOnClickListener(comingSoonListener);
         cvLatestNotice.setOnClickListener(comingSoonListener);
@@ -216,6 +218,8 @@ public class DashboardActivity extends FragmentActivity {
             openFragmentWithAnimation(new AttendanceFragment());
         } else if (targetState == STATE_PAYMENTS) {
             openFragmentWithAnimation(new FeesFragment());
+} else if (targetState == STATE_RULES) { 
+            openFragmentWithAnimation(new RulesFragment());
         } else if (targetState == STATE_MORE) {
             // TODO: Open MoreFragment when created in future
             Toast.makeText(this, "More Settings Menu Coming Soon", Toast.LENGTH_SHORT).show();
