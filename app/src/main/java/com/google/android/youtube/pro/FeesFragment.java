@@ -62,17 +62,14 @@ public class FeesFragment extends Fragment {
             }
         });
 
-        // 1. Pehle Cache se data load karo (Instant UI)
         loadCachedData();
 
-        // 2. Phir background me Firebase se fresh data fetch karo
         fetchCurrentStatus();
         fetchPaymentHistory();
 
         return view;
     }
 
-    // 🔥 CACHE LOADING LOGIC
     private void loadCachedData() {
         String status = prefs.getString("cache_feeStatus", "Loading...");
         long dueAmt = prefs.getLong("cache_dueAmount", 0);
@@ -108,9 +105,9 @@ public class FeesFragment extends Fragment {
         if (status != null) {
             tvFeeStatusText.setText(status);
             if (status.equalsIgnoreCase("Paid")) {
-                tvFeeStatusText.setTextColor(Color.parseColor("#10B981")); // Green
-            } else if (status.equalsIgnoreCase("Pending") || status.equalsIgnoreCase("Overdue")) {
-                tvFeeStatusText.setTextColor(Color.parseColor("#EF4444")); // Red
+                tvFeeStatusText.setTextColor(Color.parseColor("#10B981")); 
+            } else if (status.equalsIgnoreCase("Pending") || status.equalsIgnoreCase("Overdue") || status.equalsIgnoreCase("Due")) {
+                tvFeeStatusText.setTextColor(Color.parseColor("#EF4444")); 
             }
         }
         
@@ -126,29 +123,62 @@ public class FeesFragment extends Fragment {
     }
 
     private void fetchCurrentStatus() {
-        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername);
-        ref.addListenerForSingleValueEvent(new ValueEventListener() {
+        DatabaseReference studentRef = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername);
+        DatabaseReference offsetRef = FirebaseDatabase.getInstance().getReference(".info/serverTimeOffset");
+
+        offsetRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    String status = snapshot.child("feeStatus").getValue(String.class);
-                    Long dueAmt = snapshot.child("dueAmount").getValue(Long.class);
-                    String valid = snapshot.child("validTill").getValue(String.class);
-                    String lastMonth = snapshot.child("lastPaidMonth").getValue(String.class);
-
-                    // Update UI
-                    updateCurrentStatusUI(status, dueAmt, valid, lastMonth);
-
-                    // Save to Cache
-                    SharedPreferences.Editor editor = prefs.edit();
-                    if (status != null) editor.putString("cache_feeStatus", status);
-                    if (dueAmt != null) editor.putLong("cache_dueAmount", dueAmt);
-                    if (valid != null) editor.putString("cache_validTill", valid);
-                    if (lastMonth != null) editor.putString("cache_lastPaidMonth", lastMonth);
-                    editor.apply();
+            public void onDataChange(@NonNull DataSnapshot offsetSnapshot) {
+                long offset = 0;
+                if (offsetSnapshot.exists()) {
+                    offset = offsetSnapshot.getValue(Long.class);
                 }
+
+                long estimatedServerTimeMs = System.currentTimeMillis() + offset;
+                Date onlineCurrentDate = new Date(estimatedServerTimeMs);
+
+                studentRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (snapshot.exists()) {
+                            Long dueAmt = snapshot.child("dueAmount").getValue(Long.class);
+                            String validTill = snapshot.child("validTill").getValue(String.class);
+                            String lastMonth = snapshot.child("lastPaidMonth").getValue(String.class);
+
+                            String dynamicStatus = "Pending"; 
+
+                            if (validTill != null && !validTill.isEmpty()) {
+                                try {
+                                    SimpleDateFormat sdf = new SimpleDateFormat("d MMMM yyyy", Locale.ENGLISH);
+                                    Date validTillDate = sdf.parse(validTill);
+
+                                    if (validTillDate != null) {
+                                        if (validTillDate.before(onlineCurrentDate)) {
+                                            dynamicStatus = "Due";
+                                        } else {
+                                            dynamicStatus = "Paid"; 
+                                        }
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    dynamicStatus = "Error parsing date";
+                                }
+                            }
+
+                            updateCurrentStatusUI(dynamicStatus, dueAmt, validTill, lastMonth);
+
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.putString("cache_feeStatus", dynamicStatus);
+                            if (dueAmt != null) editor.putLong("cache_dueAmount", dueAmt);
+                            if (validTill != null) editor.putString("cache_validTill", validTill);
+                            if (lastMonth != null) editor.putString("cache_lastPaidMonth", lastMonth);
+                            editor.apply();
+                        }
+                    }
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
+                });
             }
-            @Override public void onCancelled(DatabaseError error) {}
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
@@ -156,10 +186,9 @@ public class FeesFragment extends Fragment {
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Payments").child(savedUsername);
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot snapshot) {
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists() && snapshot.getChildrenCount() > 0) {
                     
-                    // 🔥 REAL MONTH SORTING LOGIC
                     List<DataSnapshot> monthList = new ArrayList<>();
                     for (DataSnapshot snap : snapshot.getChildren()) {
                         monthList.add(snap);
@@ -172,7 +201,6 @@ public class FeesFragment extends Fragment {
                             try {
                                 Date date1 = sdf.parse(s1.getKey());
                                 Date date2 = sdf.parse(s2.getKey());
-                                // Descending order (Latest month on top)
                                 return date2.compareTo(date1); 
                             } catch (Exception e) {
                                 return 0;
@@ -185,19 +213,17 @@ public class FeesFragment extends Fragment {
                     JSONArray cacheArray = new JSONArray();
 
                     for (DataSnapshot monthSnap : monthList) {
-                        String monthName = monthSnap.getKey(); // e.g., "June 2026"
+                        String monthName = monthSnap.getKey(); 
                         Long amount = monthSnap.child("amount").getValue(Long.class);
                         String payDate = monthSnap.child("payDate").getValue(String.class);
-                        String d2d = monthSnap.child("d2d").getValue(String.class); // New Field
+                        String d2d = monthSnap.child("d2d").getValue(String.class); 
 
-                        // Default checks
                         if (amount == null) amount = 0L;
                         if (payDate == null) payDate = "--";
                         if (d2d == null) d2d = "";
 
                         addHistoryRow(monthName, payDate, amount, d2d);
 
-                        // Save to JSON Array for Caching
                         try {
                             JSONObject obj = new JSONObject();
                             obj.put("monthName", monthName);
@@ -208,7 +234,6 @@ public class FeesFragment extends Fragment {
                         } catch (Exception e) { e.printStackTrace(); }
                     }
 
-                    // Save JSON to SharedPreferences
                     prefs.edit().putString("cache_paymentHistory", cacheArray.toString()).apply();
 
                 } else {
@@ -216,23 +241,20 @@ public class FeesFragment extends Fragment {
                     tvNoHistory.setVisibility(View.VISIBLE);
                 }
             }
-            @Override public void onCancelled(DatabaseError error) {}
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
-    // 🔥 PREMIUM DYNAMIC UI (No XML Needed)
     private void addHistoryRow(String monthName, String payDate, Long amount, String d2d) {
         LinearLayout row = new LinearLayout(getContext());
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(16, 28, 16, 28);
         row.setGravity(android.view.Gravity.CENTER_VERTICAL);
 
-        // Left Column (Month, D2D, Pay Date)
         LinearLayout leftCol = new LinearLayout(getContext());
         leftCol.setOrientation(LinearLayout.VERTICAL);
         leftCol.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-        // 1. Month Name
         TextView tvMonth = new TextView(getContext());
         tvMonth.setText(monthName);
         tvMonth.setTextColor(Color.parseColor("#0F172A"));
@@ -240,7 +262,6 @@ public class FeesFragment extends Fragment {
         tvMonth.setTypeface(null, android.graphics.Typeface.BOLD);
         leftCol.addView(tvMonth);
 
-        // 2. D2D Field (Premium Look with Calendar Emoji)
         if (d2d != null && !d2d.trim().isEmpty()) {
             TextView tvD2D = new TextView(getContext());
             tvD2D.setText("🗓️ " + d2d);
@@ -250,7 +271,6 @@ public class FeesFragment extends Fragment {
             leftCol.addView(tvD2D);
         }
 
-        // 3. Paid On Date
         TextView tvDate = new TextView(getContext());
         tvDate.setText("Paid on: " + payDate);
         tvDate.setTextColor(Color.parseColor("#94A3B8"));
@@ -258,7 +278,6 @@ public class FeesFragment extends Fragment {
         tvDate.setPadding(0, 4, 0, 0);
         leftCol.addView(tvDate);
 
-        // Right Column (Amount)
         TextView tvAmt = new TextView(getContext());
         tvAmt.setText("₹" + amount);
         tvAmt.setTextColor(Color.parseColor("#10B981"));
@@ -270,7 +289,6 @@ public class FeesFragment extends Fragment {
 
         paymentHistoryContainer.addView(row);
 
-        // Subtle Divider
         View divider = new View(getContext());
         divider.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 2));
         divider.setBackgroundColor(Color.parseColor("#F1F5F9"));
