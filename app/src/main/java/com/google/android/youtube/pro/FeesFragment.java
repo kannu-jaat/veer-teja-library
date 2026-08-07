@@ -76,7 +76,8 @@ public class FeesFragment extends Fragment {
         String valid = prefs.getString("cache_validTill", "--");
         String lastMonth = prefs.getString("cache_lastPaidMonth", "--");
 
-        updateCurrentStatusUI(status, dueAmt, valid, lastMonth);
+        updateCurrentStatusUI(status, dueAmt, valid);
+        tvLastPaidMonth.setText(lastMonth); // Cache se Last Paid Month set karo
 
         String historyJson = prefs.getString("cache_paymentHistory", "");
         if (!historyJson.isEmpty()) {
@@ -101,7 +102,8 @@ public class FeesFragment extends Fragment {
         }
     }
 
-    private void updateCurrentStatusUI(String status, Long dueAmt, String valid, String lastMonth) {
+    // Isme se lastMonth ka parameter hata diya gaya hai
+    private void updateCurrentStatusUI(String status, Long dueAmt, String valid) {
         if (status != null) {
             tvFeeStatusText.setText(status);
             if (status.equalsIgnoreCase("Paid")) {
@@ -119,7 +121,6 @@ public class FeesFragment extends Fragment {
         }
 
         if (valid != null) tvValidTill.setText(valid);
-        if (lastMonth != null) tvLastPaidMonth.setText(lastMonth);
     }
 
     private void fetchCurrentStatus() {
@@ -143,7 +144,8 @@ public class FeesFragment extends Fragment {
                         if (snapshot.exists()) {
                             Long dueAmt = snapshot.child("dueAmount").getValue(Long.class);
                             String validTill = snapshot.child("validTill").getValue(String.class);
-                            String lastMonth = snapshot.child("lastPaidMonth").getValue(String.class);
+                            
+                            // Ab lastPaidMonth Firebase se read karne ki jarurat nahi hai
 
                             String dynamicStatus = "Pending"; 
 
@@ -165,13 +167,12 @@ public class FeesFragment extends Fragment {
                                 }
                             }
 
-                            updateCurrentStatusUI(dynamicStatus, dueAmt, validTill, lastMonth);
+                            updateCurrentStatusUI(dynamicStatus, dueAmt, validTill);
 
                             SharedPreferences.Editor editor = prefs.edit();
                             editor.putString("cache_feeStatus", dynamicStatus);
                             if (dueAmt != null) editor.putLong("cache_dueAmount", dueAmt);
                             if (validTill != null) editor.putString("cache_validTill", validTill);
-                            if (lastMonth != null) editor.putString("cache_lastPaidMonth", lastMonth);
                             editor.apply();
                         }
                     }
@@ -208,6 +209,13 @@ public class FeesFragment extends Fragment {
                         }
                     });
 
+                    // 🔥 AUTO-FETCH LAST PAID MONTH SE LATEST ENTRY (Index 0)
+                    if (!monthList.isEmpty()) {
+                        String latestMonth = monthList.get(0).getKey(); // Sabse top wala month
+                        tvLastPaidMonth.setText(latestMonth);
+                        prefs.edit().putString("cache_lastPaidMonth", latestMonth).apply();
+                    }
+
                     tvNoHistory.setVisibility(View.GONE);
                     paymentHistoryContainer.removeAllViews();
                     JSONArray cacheArray = new JSONArray();
@@ -239,6 +247,10 @@ public class FeesFragment extends Fragment {
                 } else {
                     tvNoHistory.setText("No payment history found.");
                     tvNoHistory.setVisibility(View.VISIBLE);
+                    
+                    // Agar koi history nahi hai toh dash dikhao
+                    tvLastPaidMonth.setText("--");
+                    prefs.edit().putString("cache_lastPaidMonth", "--").apply();
                 }
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
