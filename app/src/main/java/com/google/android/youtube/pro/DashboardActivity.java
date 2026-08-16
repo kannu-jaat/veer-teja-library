@@ -274,10 +274,23 @@ public class DashboardActivity extends FragmentActivity {
         return ssid;
     }
 
-    // 🔥 NEW: Verification Engine
-        // 🔥 NEW: Verification Engine with Admin Bypass & GPS Alert
-    private void verifyQrAndMarkAttendance(String scannedHash) {
-        // Pehle check karo ki Student 'Admin' toh nahi hai?
+        // 🔥 NEW: Verification Engine with JSON Parsing, Admin Bypass & GPS Alert
+    private void verifyQrAndMarkAttendance(String scannedData) {
+        
+        String extractedHash = "";
+        try {
+            // 1. QR Code ke JSON me se sirf 'hash' nikalo
+            org.json.JSONObject qrJson = new org.json.JSONObject(scannedData);
+            extractedHash = qrJson.getString("hash");
+        } catch (Exception e) {
+            // Agar QR Code me JSON nahi hai (kisi ne random QR scan kar liya)
+            Toast.makeText(DashboardActivity.this, "Invalid QR Format!", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        final String finalScannedHash = extractedHash;
+
+        // 2. Pehle check karo ki Student 'Admin' toh nahi hai?
         DatabaseReference studentRef = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername);
         
         studentRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -293,7 +306,7 @@ public class DashboardActivity extends FragmentActivity {
                 
                 final boolean finalIsAdmin = isAdmin;
 
-                // Ab QR Code check karo
+                // 3. Ab Firebase DB wale Hash se match karo
                 DatabaseReference qrRef = FirebaseDatabase.getInstance().getReference("QRConfig/current");
                 qrRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
@@ -302,7 +315,7 @@ public class DashboardActivity extends FragmentActivity {
                             String dbHash = qrSnap.child("hash").getValue(String.class);
                             String dbWifi = qrSnap.child("wifi").getValue(String.class);
 
-                            if (dbHash != null && scannedHash.equals(dbHash)) {
+                            if (dbHash != null && finalScannedHash.equals(dbHash)) {
                                 
                                 // 🔥 ADMIN BYPASS
                                 if (finalIsAdmin) {
@@ -314,15 +327,12 @@ public class DashboardActivity extends FragmentActivity {
                                     String currentWifi = getCurrentSsid();
                                     
                                     if (currentWifi == null || currentWifi.equals("<unknown ssid>")) {
-                                        // GPS Off hone ki wajah se Android ne naam chhupa liya hai
                                         Toast.makeText(DashboardActivity.this, "⚠️ Please turn ON Location (GPS) to verify Wi-Fi!", Toast.LENGTH_LONG).show();
                                     } 
                                     else if (dbWifi == null || dbWifi.isEmpty() || currentWifi.equals(dbWifi)) {
-                                        // Wi-Fi Match Ho Gaya!
                                         markAttendanceInDatabase();
                                     } 
                                     else {
-                                        // Proxy Pakdi Gayi
                                         Toast.makeText(DashboardActivity.this, "Proxy Blocked! Connect to Library Wi-Fi (" + dbWifi + ")", Toast.LENGTH_LONG).show();
                                     }
                                 }
@@ -337,7 +347,6 @@ public class DashboardActivity extends FragmentActivity {
             @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
-
 
     // 🔥 NEW: Final Marking logic with Server Time
     private void markAttendanceInDatabase() {
