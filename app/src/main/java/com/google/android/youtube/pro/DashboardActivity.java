@@ -247,14 +247,16 @@ public class DashboardActivity extends FragmentActivity {
     }
 
     // 🔥 NEW: ZXing Scanner setup
-    private void launchQRScanner() {
+     private void launchQRScanner() {
         ScanOptions options = new ScanOptions();
         options.setPrompt("Scan Library QR to Mark Attendance\n(Make sure GPS & Wi-Fi are ON)");
         options.setBeepEnabled(true);
-        options.setOrientationLocked(true);
+        options.setOrientationLocked(true); // Locked mode
+        options.setCaptureActivity(PortraitCaptureActivity.class); // 🔥 Yahan Custom Portrait Activity laga di
         options.setDesiredBarcodeFormats(ScanOptions.QR_CODE);
         barcodeLauncher.launch(options);
     }
+
 
     // 🔥 NEW: Getting Current Wi-Fi SSID
     private String getCurrentSsid() {
@@ -273,33 +275,69 @@ public class DashboardActivity extends FragmentActivity {
     }
 
     // 🔥 NEW: Verification Engine
+        // 🔥 NEW: Verification Engine with Admin Bypass & GPS Alert
     private void verifyQrAndMarkAttendance(String scannedHash) {
-        DatabaseReference qrRef = FirebaseDatabase.getInstance().getReference("QRConfig/current");
-        qrRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        // Pehle check karo ki Student 'Admin' toh nahi hai?
+        DatabaseReference studentRef = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername);
+        
+        studentRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if(snapshot.exists()) {
-                    String dbHash = snapshot.child("hash").getValue(String.class);
-                    String dbWifi = snapshot.child("wifi").getValue(String.class);
-
-                    if (dbHash != null && scannedHash.equals(dbHash)) {
-                        // Hash matched! Checking Anti-Proxy (Wi-Fi)
-                        String currentWifi = getCurrentSsid();
-                        
-                        // Handle Edge Case: If DB WiFi is empty, skip wifi check (useful for testing)
-                        if (dbWifi == null || dbWifi.isEmpty() || (currentWifi != null && currentWifi.equals(dbWifi))) {
-                            markAttendanceInDatabase();
-                        } else {
-                            Toast.makeText(DashboardActivity.this, "Proxy Blocked! Connect to Library Wi-Fi (" + dbWifi + ")", Toast.LENGTH_LONG).show();
-                        }
-                    } else {
-                        Toast.makeText(DashboardActivity.this, "Invalid or Old QR Code!", Toast.LENGTH_LONG).show();
+            public void onDataChange(@NonNull DataSnapshot studentSnap) {
+                boolean isAdmin = false;
+                if(studentSnap.hasChild("Admin")) {
+                    Object adminObj = studentSnap.child("Admin").getValue();
+                    if(adminObj != null && adminObj.toString().equalsIgnoreCase("true")) {
+                        isAdmin = true;
                     }
                 }
+                
+                final boolean finalIsAdmin = isAdmin;
+
+                // Ab QR Code check karo
+                DatabaseReference qrRef = FirebaseDatabase.getInstance().getReference("QRConfig/current");
+                qrRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot qrSnap) {
+                        if(qrSnap.exists()) {
+                            String dbHash = qrSnap.child("hash").getValue(String.class);
+                            String dbWifi = qrSnap.child("wifi").getValue(String.class);
+
+                            if (dbHash != null && scannedHash.equals(dbHash)) {
+                                
+                                // 🔥 ADMIN BYPASS
+                                if (finalIsAdmin) {
+                                    Toast.makeText(DashboardActivity.this, "Admin Bypass Active 🚀", Toast.LENGTH_SHORT).show();
+                                    markAttendanceInDatabase();
+                                } 
+                                // 👤 NORMAL STUDENT CHECK
+                                else {
+                                    String currentWifi = getCurrentSsid();
+                                    
+                                    if (currentWifi == null || currentWifi.equals("<unknown ssid>")) {
+                                        // GPS Off hone ki wajah se Android ne naam chhupa liya hai
+                                        Toast.makeText(DashboardActivity.this, "⚠️ Please turn ON Location (GPS) to verify Wi-Fi!", Toast.LENGTH_LONG).show();
+                                    } 
+                                    else if (dbWifi == null || dbWifi.isEmpty() || currentWifi.equals(dbWifi)) {
+                                        // Wi-Fi Match Ho Gaya!
+                                        markAttendanceInDatabase();
+                                    } 
+                                    else {
+                                        // Proxy Pakdi Gayi
+                                        Toast.makeText(DashboardActivity.this, "Proxy Blocked! Connect to Library Wi-Fi (" + dbWifi + ")", Toast.LENGTH_LONG).show();
+                                    }
+                                }
+                            } else {
+                                Toast.makeText(DashboardActivity.this, "Invalid or Old QR Code!", Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    }
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
+                });
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
+
 
     // 🔥 NEW: Final Marking logic with Server Time
     private void markAttendanceInDatabase() {
