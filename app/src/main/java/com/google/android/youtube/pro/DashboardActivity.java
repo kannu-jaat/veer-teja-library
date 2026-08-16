@@ -1,8 +1,10 @@
 package com.google.android.youtube.pro;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -11,6 +13,9 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.Uri;
+import android.net.wifi.SupplicantState;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -20,15 +25,21 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity; 
+import androidx.fragment.app.FragmentActivity;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.journeyapps.barcodescanner.ScanContract;
+import com.journeyapps.barcodescanner.ScanOptions;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -45,12 +56,12 @@ public class DashboardActivity extends FragmentActivity {
     private TextView tvGreeting, tvDashName, tvSeatNumber, tvMembershipType, tvValidity, tvInternetWarning;
     private TextView tvTodayStatus, tvStatusTitle, tvAttDate, tvAttTime, tvDaysPresent;
     private ImageView ivHeaderAvatar, ivStatusAvatar, btnNotifications;
-    
+
     // All Grid Buttons
     private LinearLayout btnMarkAttendGrid, btnMyAttendanceGrid, btnMySeatGrid, btnFeesGrid;
     private LinearLayout btnNoticesGrid, btnRulesGrid, btnProfileGrid, btnSupportGrid;
     private CardView cvLatestNotice;
-    
+
     // Bottom Nav Elements
     private LinearLayout btnDashboardNav, btnMyAttendanceNav, btnPaymentsNav, btnMoreNav;
     private ImageView ivDashboardIcon, ivAttendIcon, ivPaymentsIcon, ivMoreIcon;
@@ -59,7 +70,7 @@ public class DashboardActivity extends FragmentActivity {
 
     private LinearLayout dashboardBottomContent;
     private View fragmentContainer; // Generic container for all fragments
-    
+
     private SharedPreferences prefs;
     private String savedUsername;
     private ConnectivityManager.NetworkCallback networkCallback;
@@ -71,8 +82,28 @@ public class DashboardActivity extends FragmentActivity {
     private static final int STATE_ATTENDANCE = 1;
     private static final int STATE_PAYMENTS = 2;
     private static final int STATE_MORE = 3;
-private static final int STATE_RULES = 4;
+    private static final int STATE_RULES = 4;
     private int currentState = STATE_DASHBOARD;
+
+    // 🔥 NEW: Permission Launcher for Camera & Location
+    private final ActivityResultLauncher<String[]> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+                Boolean cameraGranted = result.getOrDefault(Manifest.permission.CAMERA, false);
+                Boolean locationGranted = result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+                if (cameraGranted && locationGranted) {
+                    launchQRScanner();
+                } else {
+                    Toast.makeText(this, "Camera & Location permissions required for Attendance!", Toast.LENGTH_LONG).show();
+                }
+            });
+
+    // 🔥 NEW: QR Scanner Result System
+    private final ActivityResultLauncher<ScanOptions> barcodeLauncher = registerForActivityResult(new ScanContract(), result -> {
+        if(result.getContents() != null) {
+            Toast.makeText(this, "Verifying QR & Location...", Toast.LENGTH_SHORT).show();
+            verifyQrAndMarkAttendance(result.getContents());
+        }
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,7 +113,7 @@ private static final int STATE_RULES = 4;
         initializeViews();
         setupSharedPreferences();
         setupRealtimeInternetCheck();
-        
+
         if (savedUsername.isEmpty()) {
             startActivity(new Intent(this, LoginActivity.class));
             finish();
@@ -100,7 +131,7 @@ private static final int STATE_RULES = 4;
         tvDashName = findViewById(R.id.tvDashName);
         ivHeaderAvatar = findViewById(R.id.ivHeaderAvatar);
         btnNotifications = findViewById(R.id.btnNotifications);
-        
+
         // Status Cards
         tvSeatNumber = findViewById(R.id.tvSeatNumber);
         tvMembershipType = findViewById(R.id.tvMembershipType);
@@ -112,7 +143,7 @@ private static final int STATE_RULES = 4;
         tvAttTime = findViewById(R.id.tvAttTime);
         ivStatusAvatar = findViewById(R.id.ivStatusAvatar);
         cvLatestNotice = findViewById(R.id.cvLatestNotice);
-        
+
         // Grid Buttons
         btnMarkAttendGrid = findViewById(R.id.btnMarkAttendGrid);
         btnMyAttendanceGrid = findViewById(R.id.btnMyAttendanceGrid);
@@ -122,14 +153,14 @@ private static final int STATE_RULES = 4;
         btnRulesGrid = findViewById(R.id.btnRulesGrid);
         btnProfileGrid = findViewById(R.id.btnProfileGrid);
         btnSupportGrid = findViewById(R.id.btnSupportGrid);
-        
+
         // Bottom Nav Buttons
         btnDashboardNav = findViewById(R.id.btnDashboardNav);
         btnMyAttendanceNav = findViewById(R.id.btnMyAttendanceNav);
         btnPaymentsNav = findViewById(R.id.btnPaymentsNav);
         btnMoreNav = findViewById(R.id.btnMoreNav);
         btnCenterCameraFab = findViewById(R.id.btnCenterCameraFab);
-        
+
         // Bottom Nav Icons & Texts
         ivDashboardIcon = findViewById(R.id.ivDashboardIcon);
         tvDashboardText = findViewById(R.id.tvDashboardText);
@@ -139,10 +170,10 @@ private static final int STATE_RULES = 4;
         tvPaymentsText = findViewById(R.id.tvPaymentsText);
         ivMoreIcon = findViewById(R.id.ivMoreIcon);
         tvMoreText = findViewById(R.id.tvMoreText);
-        
+
         // Containers
         dashboardBottomContent = findViewById(R.id.dashboard_bottom_content);
-        fragmentContainer = findViewById(R.id.fragment_container); // Updated ID
+        fragmentContainer = findViewById(R.id.fragment_container);
     }
 
     private void setupSharedPreferences() {
@@ -160,14 +191,13 @@ private static final int STATE_RULES = 4;
         checkTodayAttendance();
     }
 
-    // 🔥 CENTRAL CLICK ROUTER (FUTURE-PROOF)
     private void setupClickListeners() {
         // ACTIVE FEATURES (Will load fragments/actions)
         btnDashboardNav.setOnClickListener(v -> handleNavigation(STATE_DASHBOARD));
-        
+
         btnMyAttendanceGrid.setOnClickListener(v -> handleNavigation(STATE_ATTENDANCE));
         btnMyAttendanceNav.setOnClickListener(v -> handleNavigation(STATE_ATTENDANCE));
-        
+
         btnFeesGrid.setOnClickListener(v -> handleNavigation(STATE_PAYMENTS));
         btnPaymentsNav.setOnClickListener(v -> handleNavigation(STATE_PAYMENTS));
 
@@ -182,20 +212,126 @@ private static final int STATE_RULES = 4;
             startActivity(intent);
         });
 
+        // 🔥 NEW: Mark Attendance Click Listeners
+        btnMarkAttendGrid.setOnClickListener(v -> checkPermissionsAndScan());
+        btnCenterCameraFab.setOnClickListener(v -> checkPermissionsAndScan());
+
         // INACTIVE FEATURES (Show Coming Soon)
         View.OnClickListener comingSoonListener = v -> {
             if (!isSpamClick()) Toast.makeText(this, "Feature coming soon!", Toast.LENGTH_SHORT).show();
         };
-        
-        btnMarkAttendGrid.setOnClickListener(comingSoonListener);
+
         btnMySeatGrid.setOnClickListener(comingSoonListener);
         btnNoticesGrid.setOnClickListener(comingSoonListener);
 
-btnRulesGrid.setOnClickListener(v -> handleNavigation(STATE_RULES));
+        btnRulesGrid.setOnClickListener(v -> handleNavigation(STATE_RULES));
         btnProfileGrid.setOnClickListener(comingSoonListener);
         btnNotifications.setOnClickListener(comingSoonListener);
         cvLatestNotice.setOnClickListener(comingSoonListener);
-        btnCenterCameraFab.setOnClickListener(comingSoonListener);
+    }
+
+    // 🔥 NEW: Permissions Check & Scan Launch
+    private void checkPermissionsAndScan() {
+        if (isSpamClick()) return;
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            launchQRScanner();
+        } else {
+            requestPermissionLauncher.launch(new String[]{
+                    Manifest.permission.CAMERA,
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+            });
+        }
+    }
+
+    // 🔥 NEW: ZXing Scanner setup
+    private void launchQRScanner() {
+        ScanOptions options = new ScanOptions();
+        options.setPrompt("Scan Library QR to Mark Attendance\n(Make sure GPS & Wi-Fi are ON)");
+        options.setBeepEnabled(true);
+        options.setOrientationLocked(true);
+        options.setDesiredBarcodeFormats(ScanOptions.QR_CODE);
+        barcodeLauncher.launch(options);
+    }
+
+    // 🔥 NEW: Getting Current Wi-Fi SSID
+    private String getCurrentSsid() {
+        String ssid = null;
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (wifiManager != null) {
+            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+            if (wifiInfo != null && wifiInfo.getSupplicantState() == SupplicantState.COMPLETED) {
+                ssid = wifiInfo.getSSID();
+                if (ssid != null && ssid.startsWith("\"") && ssid.endsWith("\"")) {
+                    ssid = ssid.substring(1, ssid.length() - 1); // Remove extra quotes
+                }
+            }
+        }
+        return ssid;
+    }
+
+    // 🔥 NEW: Verification Engine
+    private void verifyQrAndMarkAttendance(String scannedHash) {
+        DatabaseReference qrRef = FirebaseDatabase.getInstance().getReference("QRConfig/current");
+        qrRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if(snapshot.exists()) {
+                    String dbHash = snapshot.child("hash").getValue(String.class);
+                    String dbWifi = snapshot.child("wifi").getValue(String.class);
+
+                    if (dbHash != null && scannedHash.equals(dbHash)) {
+                        // Hash matched! Checking Anti-Proxy (Wi-Fi)
+                        String currentWifi = getCurrentSsid();
+                        
+                        // Handle Edge Case: If DB WiFi is empty, skip wifi check (useful for testing)
+                        if (dbWifi == null || dbWifi.isEmpty() || (currentWifi != null && currentWifi.equals(dbWifi))) {
+                            markAttendanceInDatabase();
+                        } else {
+                            Toast.makeText(DashboardActivity.this, "Proxy Blocked! Connect to Library Wi-Fi (" + dbWifi + ")", Toast.LENGTH_LONG).show();
+                        }
+                    } else {
+                        Toast.makeText(DashboardActivity.this, "Invalid or Old QR Code!", Toast.LENGTH_LONG).show();
+                    }
+                }
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    // 🔥 NEW: Final Marking logic with Server Time
+    private void markAttendanceInDatabase() {
+        DatabaseReference offsetRef = FirebaseDatabase.getInstance().getReference(".info/serverTimeOffset");
+        offsetRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot offsetSnapshot) {
+                long offset = offsetSnapshot.exists() ? offsetSnapshot.getValue(Long.class) : 0;
+                long estimatedServerTimeMs = System.currentTimeMillis() + offset;
+                Date onlineDate = new Date(estimatedServerTimeMs);
+
+                SimpleDateFormat dateSdf = new SimpleDateFormat("dd MMMM yyyy", Locale.ENGLISH);
+                SimpleDateFormat timeSdf = new SimpleDateFormat("hh:mm a", Locale.ENGLISH);
+
+                String dateString = dateSdf.format(onlineDate);
+                String timeString = timeSdf.format(onlineDate);
+
+                DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance")
+                        .child(savedUsername).child(dateString);
+
+                attRef.child("checkIn").setValue(timeString).addOnCompleteListener(task -> {
+                    if(task.isSuccessful()){
+                        Toast.makeText(DashboardActivity.this, "Attendance Marked Successfully! ✅", Toast.LENGTH_LONG).show();
+                        checkTodayAttendance(); // Refresh UI instantly
+                        calculateMonthlyAttendance(); // Update stats
+                    } else {
+                        Toast.makeText(DashboardActivity.this, "Failed to mark attendance. Try again.", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
     }
 
     private boolean isSpamClick() {
@@ -218,23 +354,20 @@ btnRulesGrid.setOnClickListener(v -> handleNavigation(STATE_RULES));
             openFragmentWithAnimation(new AttendanceFragment());
         } else if (targetState == STATE_PAYMENTS) {
             openFragmentWithAnimation(new FeesFragment());
-} else if (targetState == STATE_RULES) { 
+        } else if (targetState == STATE_RULES) { 
             openFragmentWithAnimation(new RulesFragment());
         } else if (targetState == STATE_MORE) {
-            // TODO: Open MoreFragment when created in future
             Toast.makeText(this, "More Settings Menu Coming Soon", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void updateBottomNavColors(int activeState) {
-        // Reset ALL to Gray/Disabled
         int grayColor = Color.parseColor("#94A3B8");
         ivDashboardIcon.setColorFilter(grayColor); tvDashboardText.setTextColor(grayColor);
         ivAttendIcon.setColorFilter(grayColor);    tvAttendText.setTextColor(grayColor);
         ivPaymentsIcon.setColorFilter(grayColor);  tvPaymentsText.setTextColor(grayColor);
         ivMoreIcon.setColorFilter(grayColor);      tvMoreText.setTextColor(grayColor);
 
-        // Set Active to Yellow
         int activeColor = Color.parseColor("#FBBF24");
         switch (activeState) {
             case STATE_DASHBOARD:
@@ -272,7 +405,7 @@ btnRulesGrid.setOnClickListener(v -> handleNavigation(STATE_RULES));
     public void closeFragmentWithAnimation() {
         currentState = STATE_DASHBOARD;
         updateBottomNavColors(STATE_DASHBOARD);
-        
+
         fragmentContainer.animate()
                 .scaleX(0.5f).scaleY(0.5f).alpha(0f)
                 .setDuration(300)
@@ -293,7 +426,6 @@ btnRulesGrid.setOnClickListener(v -> handleNavigation(STATE_RULES));
         }
     }
 
-    // --- Firebase & Utility Methods Below ---
     private void setupRealtimeInternetCheck() {
         cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm != null && cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnected()) {
@@ -357,7 +489,7 @@ btnRulesGrid.setOnClickListener(v -> handleNavigation(STATE_RULES));
                     } else {
                         tvMembershipType.setText("Pending");
                     }
-                    
+
                     if (validTill != null && !validTill.isEmpty()) tvValidity.setText("Valid till " + validTill);
                     else tvValidity.setText("Valid till --");
 
