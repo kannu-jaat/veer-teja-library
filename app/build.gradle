@@ -25,6 +25,9 @@ dependencies {
 // 📸 QR Scanner Library
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
     implementation 'androidx.webkit:webkit:1.12.0'
+ implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.activity:activity:1.8.0'
+    implementation 'androidx.fragment:fragment:1.6.2'
 
     implementation 'androidx.cardview:cardview:1.0.0'
     // --- Firebase Dependencies Start ---
