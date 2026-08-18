@@ -4,13 +4,9 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,269 +20,121 @@ import com.google.firebase.database.ValueEventListener;
 
 public class MainActivity extends Activity {
 
-    private static final String PREF_NAME = "LibraryApp";
-    private static final long SPLASH_DURATION = 2800L;
-
     private SharedPreferences prefs;
-    private Handler splashHandler;
-    private boolean isFinishingSplash = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        setupSystemUi();
-
         setContentView(R.layout.main);
 
-        prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        splashHandler = new Handler(Looper.getMainLooper());
+        TextView splashTitle = findViewById(R.id.splashTitle);
+        if (splashTitle != null) {
+            splashTitle.setText(AppConfig.LIBRARY_NAME);
+            splashTitle.setAlpha(0f); 
+            splashTitle.setTranslationY(50); 
+            splashTitle.animate().alpha(1f).translationY(0).setDuration(1500).start();
+        }
 
-        setupPremiumSplash();
+        prefs = getSharedPreferences("LibraryApp", Context.MODE_PRIVATE);
 
         startNotificationService();
 
-        splashHandler.postDelayed(() -> {
-            if (!isFinishingSplash && !isFinishing()) {
+        // 🔥 NAYA: Splash screen chalte waqt background me AppFeatures fetch kar lo
+        fetchAppFeaturesAndCache();
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
                 checkLoginStatus();
             }
-        }, SPLASH_DURATION);
-    }
-
-    private void setupSystemUi() {
-
-        Window window = getWindow();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.setStatusBarColor(Color.TRANSPARENT);
-            window.setNavigationBarColor(Color.TRANSPARENT);
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            // Dark splash background ke liye light status/navigation icons
-            window.getDecorView().setSystemUiVisibility(0);
-        }
-
-        window.addFlags(
-                WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS
-        );
-    }
-
-    private void setupPremiumSplash() {
-
-        TextView splashTitle = findViewById(R.id.splashTitle);
-
-        if (splashTitle != null) {
-
-            splashTitle.setText(AppConfig.LIBRARY_NAME);
-
-            // Initial state
-            splashTitle.setAlpha(0f);
-            splashTitle.setTranslationY(55f);
-            splashTitle.setScaleX(0.94f);
-            splashTitle.setScaleY(0.94f);
-
-            // Premium entrance animation
-            splashTitle.animate()
-                    .alpha(1f)
-                    .translationY(0f)
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(1200L)
-                    .setStartDelay(180L)
-                    .withLayer()
-                    .start();
-        }
+        }, 2500); 
     }
 
     private void startNotificationService() {
-
         try {
-
-            Intent serviceIntent =
-                    new Intent(MainActivity.this, ForegroundService.class);
-
+            Intent serviceIntent = new Intent(this, ForegroundService.class);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForegroundService(serviceIntent);
             } else {
                 startService(serviceIntent);
             }
-
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(); 
         }
+    }
+
+    // 🔥 NAYA METHOD: Firebase se AppFeatures fetch karna
+    private void fetchAppFeaturesAndCache() {
+        DatabaseReference featuresRef = FirebaseDatabase.getInstance().getReference("AppFeatures");
+        featuresRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    String ipAuth = snapshot.child("Ip").getValue(String.class);
+                    String qrUpload = snapshot.child("QrUpload").getValue(String.class);
+                    
+                    // Permanent Cache Save (Jab tak user clear data na kare)
+                    SharedPreferences.Editor editor = prefs.edit();
+                    if (ipAuth != null) editor.putString("feature_ip", ipAuth);
+                    if (qrUpload != null) editor.putString("feature_qr_upload", qrUpload);
+                    editor.apply();
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
     }
 
     private void checkLoginStatus() {
+        boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
+        String savedUsername = prefs.getString("username", "");
 
-        if (isFinishingSplash) {
-            return;
-        }
-
-        boolean isLoggedIn =
-                prefs.getBoolean("isLoggedIn", false);
-
-        String savedUsername =
-                prefs.getString("username", "");
-
-        if (!isLoggedIn
-                || savedUsername == null
-                || savedUsername.trim().isEmpty()) {
-
-            goToLogin();
-            return;
-        }
-
-        DatabaseReference statusRef =
-                FirebaseDatabase
-                        .getInstance()
-                        .getReference("Students")
-                        .child(savedUsername)
-                        .child("status");
-
-        statusRef.addListenerForSingleValueEvent(
-                new ValueEventListener() {
-
-                    @Override
-                    public void onDataChange(
-                            @NonNull DataSnapshot snapshot) {
-
-                        if (isFinishingSplash) {
-                            return;
-                        }
-
-                        if (!snapshot.exists()) {
-
-                            Toast.makeText(
-                                    MainActivity.this,
-                                    "Account not found. Please contact Admin.",
-                                    Toast.LENGTH_LONG
-                            ).show();
-
-                            clearDataAndLogout();
-                            return;
-                        }
-
-                        String currentStatus =
-                                snapshot.getValue(String.class);
-
-                        if (currentStatus != null
-                                && currentStatus.equalsIgnoreCase("Approved")) {
-
+        if (isLoggedIn && !savedUsername.isEmpty()) {
+            DatabaseReference statusRef = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername).child("status");
+            
+            statusRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot snapshot) {
+                    if (snapshot.exists()) {
+                        String currentStatus = snapshot.getValue(String.class);
+                        if (currentStatus != null && currentStatus.equalsIgnoreCase("Approved")) {
                             goToDashboard();
-
                         } else {
-
-                            String statusText =
-                                    (currentStatus == null
-                                            || currentStatus.trim().isEmpty())
-                                            ? "Unavailable"
-                                            : currentStatus;
-
-                            Toast.makeText(
-                                    MainActivity.this,
-                                    "Your account is "
-                                            + statusText
-                                            + ". Please contact Admin.",
-                                    Toast.LENGTH_LONG
-                            ).show();
-
+                            Toast.makeText(MainActivity.this, "Your account is " + currentStatus + ". Please contact Admin.", Toast.LENGTH_LONG).show();
                             clearDataAndLogout();
                         }
-                    }
-
-                    @Override
-                    public void onCancelled(
-                            @NonNull DatabaseError error) {
-
-                        if (isFinishingSplash) {
-                            return;
-                        }
-
-                        // Existing behavior retained:
-                        // Firebase unavailable -> allow cached login
-                        goToDashboard();
+                    } else {
+                        Toast.makeText(MainActivity.this, "Account not found. Please contact Admin.", Toast.LENGTH_LONG).show();
+                        clearDataAndLogout();
                     }
                 }
-        );
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
+                    goToDashboard();
+                }
+            });
+        } else {
+            goToLogin();
+        }
     }
 
     private void goToDashboard() {
-
-        if (isFinishingSplash || isFinishing()) {
-            return;
-        }
-
-        isFinishingSplash = true;
-
-        Intent intent =
-                new Intent(
-                        MainActivity.this,
-                        DashboardActivity.class
-                );
-
-        intent.addFlags(
-                Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        | Intent.FLAG_ACTIVITY_SINGLE_TOP
-        );
-
+        Intent intent = new Intent(MainActivity.this, DashboardActivity.class);
         startActivity(intent);
-
-        overridePendingTransition(
-                android.R.anim.fade_in,
-                android.R.anim.fade_out
-        );
-
-        finish();
+        finish(); 
     }
 
     private void goToLogin() {
-
-        if (isFinishingSplash || isFinishing()) {
-            return;
-        }
-
-        isFinishingSplash = true;
-
-        Intent intent =
-                new Intent(
-                        MainActivity.this,
-                        LoginActivity.class
-                );
-
-        intent.addFlags(
-                Intent.FLAG_ACTIVITY_CLEAR_TOP
-                        | Intent.FLAG_ACTIVITY_SINGLE_TOP
-        );
-
+        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
         startActivity(intent);
-
-        overridePendingTransition(
-                android.R.anim.fade_in,
-                android.R.anim.fade_out
-        );
-
-        finish();
+        finish(); 
     }
 
     private void clearDataAndLogout() {
-
-        if (prefs != null) {
-            prefs.edit()
-                    .clear()
-                    .apply();
-        }
-
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.clear();
+        editor.apply();
         goToLogin();
-    }
-
-    @Override
-    protected void onDestroy() {
-
-        if (splashHandler != null) {
-            splashHandler.removeCallbacksAndMessages(null);
-        }
-
-        super.onDestroy();
     }
 }
