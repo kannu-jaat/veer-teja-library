@@ -14,7 +14,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.FragmentActivity; // 🔥 FIX: Using FragmentActivity
 
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.LuminanceSource;
@@ -28,13 +28,12 @@ import com.journeyapps.barcodescanner.DecoratedBarcodeView;
 
 import java.io.InputStream;
 
-public class PortraitCaptureActivity extends AppCompatActivity {
+public class PortraitCaptureActivity extends FragmentActivity { // 🔥 FIX: Changed to FragmentActivity
 
     private CaptureManager capture;
     private DecoratedBarcodeView barcodeScannerView;
     private LinearLayout btnGalleryContainer;
 
-    // 🔥 Modern Gallery Intent Handler
     private final ActivityResultLauncher<Intent> galleryLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
@@ -42,7 +41,7 @@ public class PortraitCaptureActivity extends AppCompatActivity {
                         Uri imageUri = result.getData().getData();
                         InputStream imageStream = getContentResolver().openInputStream(imageUri);
                         Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
-                        scanQRFromBitmap(selectedImage); // Pass image to our decoder
+                        scanQRFromBitmap(selectedImage); 
                     } catch (Exception e) {
                         Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
                     }
@@ -57,28 +56,25 @@ public class PortraitCaptureActivity extends AppCompatActivity {
         barcodeScannerView = findViewById(R.id.zxing_barcode_scanner);
         btnGalleryContainer = findViewById(R.id.btnGalleryContainer);
 
-        // 🔥 FIREBASE CACHE CHECK
         SharedPreferences prefs = getSharedPreferences("LibraryApp", Context.MODE_PRIVATE);
         String canUpload = prefs.getString("feature_qr_upload", "no");
 
         if ("yes".equalsIgnoreCase(canUpload)) {
-            btnGalleryContainer.setVisibility(View.VISIBLE); // Button Dikhana
+            btnGalleryContainer.setVisibility(View.VISIBLE);
             btnGalleryContainer.setOnClickListener(v -> {
                 Intent intent = new Intent(Intent.ACTION_PICK);
                 intent.setType("image/*");
                 galleryLauncher.launch(intent);
             });
         } else {
-            btnGalleryContainer.setVisibility(View.GONE); // Button Chhupana
+            btnGalleryContainer.setVisibility(View.GONE);
         }
 
-        // Initialize ZXing Camera Manager
         capture = new CaptureManager(this, barcodeScannerView);
         capture.initializeFromIntent(getIntent(), savedInstanceState);
         capture.decode();
     }
 
-    // 🔥 DECODE QR FROM GALLERY IMAGE
     private void scanQRFromBitmap(Bitmap bMap) {
         try {
             int[] intArray = new int[bMap.getWidth() * bMap.getHeight()];
@@ -87,21 +83,18 @@ public class PortraitCaptureActivity extends AppCompatActivity {
             LuminanceSource source = new RGBLuminanceSource(bMap.getWidth(), bMap.getHeight(), intArray);
             BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
             
-            // Core ZXing Decoder
             Result result = new MultiFormatReader().decode(bitmap);
             
-            // Return result back to DashboardActivity (Jaise live camera return karta hai)
             Intent intent = new Intent();
             intent.putExtra(Intents.Scan.RESULT, result.getText());
             setResult(RESULT_OK, intent);
-            finish(); // Scanner band karo aur wapas Dashboard pe jao
+            finish(); 
             
         } catch (Exception e) {
             Toast.makeText(this, "No valid QR Code found in this image!", Toast.LENGTH_LONG).show();
         }
     }
 
-    // --- Mandatory ZXing Lifecycle Methods ---
     @Override
     protected void onResume() {
         super.onResume();
