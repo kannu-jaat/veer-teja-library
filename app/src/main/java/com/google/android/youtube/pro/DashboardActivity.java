@@ -275,7 +275,7 @@ public class DashboardActivity extends FragmentActivity {
         barcodeLauncher.launch(options);
     }
 
-    // 🔥 Background IP Fetching
+    // 🔥 NEW: Background IP Fetching with Trim
     private void verifyQrAndMarkAttendance(String scannedData) {
         showCustomToast("Verifying securely...", true);
         
@@ -285,7 +285,9 @@ public class DashboardActivity extends FragmentActivity {
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
                 java.util.Scanner scanner = new java.util.Scanner(connection.getInputStream());
-                String myPublicIP = scanner.useDelimiter("\\A").hasNext() ? scanner.next() : "";
+                
+                // 🔥 .trim() added here to remove invisible spaces/newlines
+                String myPublicIP = scanner.useDelimiter("\\A").hasNext() ? scanner.next().trim() : "";
                 scanner.close();
 
                 new Handler(Looper.getMainLooper()).post(() -> {
@@ -299,7 +301,8 @@ public class DashboardActivity extends FragmentActivity {
         }).start();
     }
 
-    // 🔥 IP Verification & Checks
+
+        // 🔥 NEW: IP Verification & Checks (With Debug Mode)
     private void verifyQrWithIP(String scannedData, String studentIP) {
         String extractedHash = "";
         try {
@@ -339,10 +342,14 @@ public class DashboardActivity extends FragmentActivity {
                                     showCustomToast("Admin Bypass Active 🚀", true);
                                     markAttendanceInDatabase();
                                 } else {
-                                    if (dbAllowedIP == null || dbAllowedIP.isEmpty() || studentIP.equals(dbAllowedIP)) {
+                                    // 🔥 CLEANING DB IP BEFORE MATCHING
+                                    String cleanDbIP = (dbAllowedIP != null) ? dbAllowedIP.trim() : "";
+                                    
+                                    if (cleanDbIP.isEmpty() || studentIP.equals(cleanDbIP)) {
                                         markAttendanceInDatabase();
                                     } else {
-                                        showCustomToast("Proxy Blocked! Connect to Library Wi-Fi.", false);
+                                        // 🔥 DEBUG TOAST: Yeh aapko batayega ki problem kahan hai
+                                        showCustomToast("Proxy Blocked!\nMy IP: " + studentIP + "\nDB IP: " + cleanDbIP, false);
                                     }
                                 }
                             } else {
@@ -356,6 +363,7 @@ public class DashboardActivity extends FragmentActivity {
             @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
+
 
     private void markAttendanceInDatabase() {
         DatabaseReference offsetRef = FirebaseDatabase.getInstance().getReference(".info/serverTimeOffset");
