@@ -13,9 +13,6 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.Uri;
-import android.net.wifi.SupplicantState;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -69,14 +66,14 @@ public class DashboardActivity extends FragmentActivity {
     private CardView btnCenterCameraFab;
 
     private LinearLayout dashboardBottomContent;
-    private View fragmentContainer; // Generic container for all fragments
+    private View fragmentContainer; 
 
     private SharedPreferences prefs;
     private String savedUsername;
     private ConnectivityManager.NetworkCallback networkCallback;
     private ConnectivityManager cm;
 
-    // 🔥 SMART NAVIGATION STATES
+    // 🔥 SMART NAVIGATION & ATTENDANCE STATES
     private long lastClickTime = 0;
     private static final int STATE_DASHBOARD = 0;
     private static final int STATE_ATTENDANCE = 1;
@@ -84,23 +81,24 @@ public class DashboardActivity extends FragmentActivity {
     private static final int STATE_MORE = 3;
     private static final int STATE_RULES = 4;
     private int currentState = STATE_DASHBOARD;
+    
+    // Scanner block flag
+    private boolean isAttendanceMarkedToday = false; 
 
-    // 🔥 NEW: Permission Launcher for Camera & Location
+    // 🔥 Permission Launcher for Camera ONLY (No GPS)
     private final ActivityResultLauncher<String[]> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
                 Boolean cameraGranted = result.getOrDefault(Manifest.permission.CAMERA, false);
-                Boolean locationGranted = result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
-                if (cameraGranted && locationGranted) {
+                if (cameraGranted) {
                     launchQRScanner();
                 } else {
-                    Toast.makeText(this, "Camera & Location permissions required for Attendance!", Toast.LENGTH_LONG).show();
+                    showCustomToast("Camera permission required for Attendance!", false);
                 }
             });
 
-    // 🔥 NEW: QR Scanner Result System
+    // 🔥 QR Scanner Result System
     private final ActivityResultLauncher<ScanOptions> barcodeLauncher = registerForActivityResult(new ScanContract(), result -> {
         if(result.getContents() != null) {
-            Toast.makeText(this, "Verifying QR & Location...", Toast.LENGTH_SHORT).show();
             verifyQrAndMarkAttendance(result.getContents());
         }
     });
@@ -125,14 +123,12 @@ public class DashboardActivity extends FragmentActivity {
     }
 
     private void initializeViews() {
-        // Top Header
         tvInternetWarning = findViewById(R.id.tvInternetWarning);
         tvGreeting = findViewById(R.id.tvGreeting);
         tvDashName = findViewById(R.id.tvDashName);
         ivHeaderAvatar = findViewById(R.id.ivHeaderAvatar);
         btnNotifications = findViewById(R.id.btnNotifications);
 
-        // Status Cards
         tvSeatNumber = findViewById(R.id.tvSeatNumber);
         tvMembershipType = findViewById(R.id.tvMembershipType);
         tvValidity = findViewById(R.id.tvValidity);
@@ -144,7 +140,6 @@ public class DashboardActivity extends FragmentActivity {
         ivStatusAvatar = findViewById(R.id.ivStatusAvatar);
         cvLatestNotice = findViewById(R.id.cvLatestNotice);
 
-        // Grid Buttons
         btnMarkAttendGrid = findViewById(R.id.btnMarkAttendGrid);
         btnMyAttendanceGrid = findViewById(R.id.btnMyAttendanceGrid);
         btnMySeatGrid = findViewById(R.id.btnMySeatGrid);
@@ -154,14 +149,12 @@ public class DashboardActivity extends FragmentActivity {
         btnProfileGrid = findViewById(R.id.btnProfileGrid);
         btnSupportGrid = findViewById(R.id.btnSupportGrid);
 
-        // Bottom Nav Buttons
         btnDashboardNav = findViewById(R.id.btnDashboardNav);
         btnMyAttendanceNav = findViewById(R.id.btnMyAttendanceNav);
         btnPaymentsNav = findViewById(R.id.btnPaymentsNav);
         btnMoreNav = findViewById(R.id.btnMoreNav);
         btnCenterCameraFab = findViewById(R.id.btnCenterCameraFab);
 
-        // Bottom Nav Icons & Texts
         ivDashboardIcon = findViewById(R.id.ivDashboardIcon);
         tvDashboardText = findViewById(R.id.tvDashboardText);
         ivAttendIcon = findViewById(R.id.ivAttendIcon);
@@ -171,7 +164,6 @@ public class DashboardActivity extends FragmentActivity {
         ivMoreIcon = findViewById(R.id.ivMoreIcon);
         tvMoreText = findViewById(R.id.tvMoreText);
 
-        // Containers
         dashboardBottomContent = findViewById(R.id.dashboard_bottom_content);
         fragmentContainer = findViewById(R.id.fragment_container);
     }
@@ -192,19 +184,14 @@ public class DashboardActivity extends FragmentActivity {
     }
 
     private void setupClickListeners() {
-        // ACTIVE FEATURES (Will load fragments/actions)
         btnDashboardNav.setOnClickListener(v -> handleNavigation(STATE_DASHBOARD));
-
         btnMyAttendanceGrid.setOnClickListener(v -> handleNavigation(STATE_ATTENDANCE));
         btnMyAttendanceNav.setOnClickListener(v -> handleNavigation(STATE_ATTENDANCE));
-
         btnFeesGrid.setOnClickListener(v -> handleNavigation(STATE_PAYMENTS));
         btnPaymentsNav.setOnClickListener(v -> handleNavigation(STATE_PAYMENTS));
-
-        // MORE NAV
         btnMoreNav.setOnClickListener(v -> handleNavigation(STATE_MORE));
+        btnRulesGrid.setOnClickListener(v -> handleNavigation(STATE_RULES));
 
-        // SUPPORT EXTERNAL INTENT
         btnSupportGrid.setOnClickListener(v -> {
             if (isSpamClick()) return;
             Intent intent = new Intent(Intent.ACTION_DIAL);
@@ -212,87 +199,120 @@ public class DashboardActivity extends FragmentActivity {
             startActivity(intent);
         });
 
-        // 🔥 NEW: Mark Attendance Click Listeners
+        // 🔥 Mark Attendance Clicks
         btnMarkAttendGrid.setOnClickListener(v -> checkPermissionsAndScan());
         btnCenterCameraFab.setOnClickListener(v -> checkPermissionsAndScan());
 
-        // INACTIVE FEATURES (Show Coming Soon)
+        // Inactive Features
         View.OnClickListener comingSoonListener = v -> {
-            if (!isSpamClick()) Toast.makeText(this, "Feature coming soon!", Toast.LENGTH_SHORT).show();
+            if (!isSpamClick()) showCustomToast("Feature coming soon!", false);
         };
 
         btnMySeatGrid.setOnClickListener(comingSoonListener);
         btnNoticesGrid.setOnClickListener(comingSoonListener);
-
-        btnRulesGrid.setOnClickListener(v -> handleNavigation(STATE_RULES));
         btnProfileGrid.setOnClickListener(comingSoonListener);
         btnNotifications.setOnClickListener(comingSoonListener);
         cvLatestNotice.setOnClickListener(comingSoonListener);
     }
 
-    // 🔥 NEW: Permissions Check & Scan Launch
+    // 🔥 Premium Custom Toast Programmatically Built
+    private void showCustomToast(String message, boolean isSuccess) {
+        Toast toast = new Toast(this);
+        toast.setDuration(Toast.LENGTH_LONG);
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.HORIZONTAL);
+        layout.setPadding(40, 24, 40, 24);
+        layout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        
+        android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+        gd.setColor(isSuccess ? Color.parseColor("#065F46") : Color.parseColor("#991B1B")); 
+        gd.setCornerRadius(50f);
+        gd.setStroke(2, isSuccess ? Color.parseColor("#10B981") : Color.parseColor("#EF4444")); 
+        layout.setBackground(gd);
+
+        TextView icon = new TextView(this);
+        icon.setText(isSuccess ? "✅" : "⚠️");
+        icon.setTextSize(16f);
+
+        TextView tv = new TextView(this);
+        tv.setText(message);
+        tv.setTextColor(Color.WHITE);
+        tv.setTextSize(14f);
+        tv.setPadding(20, 0, 0, 0);
+        tv.setTypeface(null, android.graphics.Typeface.BOLD);
+
+        layout.addView(icon);
+        layout.addView(tv);
+
+        toast.setView(layout);
+        toast.show();
+    }
+
+    // 🔥 Check Flag before opening scanner (No GPS Needed)
     private void checkPermissionsAndScan() {
         if (isSpamClick()) return;
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (isAttendanceMarkedToday) {
+            showCustomToast("Attendance already marked for today!", true);
+            return;
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             launchQRScanner();
         } else {
-            requestPermissionLauncher.launch(new String[]{
-                    Manifest.permission.CAMERA,
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-            });
+            requestPermissionLauncher.launch(new String[]{ Manifest.permission.CAMERA });
         }
     }
 
-    // 🔥 NEW: ZXing Scanner setup
-     private void launchQRScanner() {
+    private void launchQRScanner() {
         ScanOptions options = new ScanOptions();
-        options.setPrompt("Scan Library QR to Mark Attendance\n(Make sure GPS & Wi-Fi are ON)");
+        options.setPrompt("Scan Library QR to Mark Attendance");
         options.setBeepEnabled(true);
-        options.setOrientationLocked(true); // Locked mode
-        options.setCaptureActivity(PortraitCaptureActivity.class); // 🔥 Yahan Custom Portrait Activity laga di
+        options.setOrientationLocked(true);
+        options.setCaptureActivity(PortraitCaptureActivity.class); 
         options.setDesiredBarcodeFormats(ScanOptions.QR_CODE);
         barcodeLauncher.launch(options);
     }
 
+    // 🔥 Background IP Fetching
+    private void verifyQrAndMarkAttendance(String scannedData) {
+        showCustomToast("Verifying securely...", true);
+        
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://api.ipify.org");
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                java.util.Scanner scanner = new java.util.Scanner(connection.getInputStream());
+                String myPublicIP = scanner.useDelimiter("\\A").hasNext() ? scanner.next() : "";
+                scanner.close();
 
-    // 🔥 NEW: Getting Current Wi-Fi SSID
-    private String getCurrentSsid() {
-        String ssid = null;
-        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        if (wifiManager != null) {
-            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-            if (wifiInfo != null && wifiInfo.getSupplicantState() == SupplicantState.COMPLETED) {
-                ssid = wifiInfo.getSSID();
-                if (ssid != null && ssid.startsWith("\"") && ssid.endsWith("\"")) {
-                    ssid = ssid.substring(1, ssid.length() - 1); // Remove extra quotes
-                }
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    verifyQrWithIP(scannedData, myPublicIP);
+                });
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    showCustomToast("Network Error! Try again.", false);
+                });
             }
-        }
-        return ssid;
+        }).start();
     }
 
-        // 🔥 NEW: Verification Engine with JSON Parsing, Admin Bypass & GPS Alert
-    private void verifyQrAndMarkAttendance(String scannedData) {
-        
+    // 🔥 IP Verification & Checks
+    private void verifyQrWithIP(String scannedData, String studentIP) {
         String extractedHash = "";
         try {
-            // 1. QR Code ke JSON me se sirf 'hash' nikalo
             org.json.JSONObject qrJson = new org.json.JSONObject(scannedData);
             extractedHash = qrJson.getString("hash");
         } catch (Exception e) {
-            // Agar QR Code me JSON nahi hai (kisi ne random QR scan kar liya)
-            Toast.makeText(DashboardActivity.this, "Invalid QR Format!", Toast.LENGTH_LONG).show();
+            showCustomToast("Invalid QR Format!", false);
             return;
         }
 
         final String finalScannedHash = extractedHash;
 
-        // 2. Pehle check karo ki Student 'Admin' toh nahi hai?
         DatabaseReference studentRef = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername);
-        
         studentRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot studentSnap) {
@@ -306,38 +326,27 @@ public class DashboardActivity extends FragmentActivity {
                 
                 final boolean finalIsAdmin = isAdmin;
 
-                // 3. Ab Firebase DB wale Hash se match karo
                 DatabaseReference qrRef = FirebaseDatabase.getInstance().getReference("QRConfig/current");
                 qrRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot qrSnap) {
                         if(qrSnap.exists()) {
                             String dbHash = qrSnap.child("hash").getValue(String.class);
-                            String dbWifi = qrSnap.child("wifi").getValue(String.class);
+                            String dbAllowedIP = qrSnap.child("allowedIP").getValue(String.class);
 
                             if (dbHash != null && finalScannedHash.equals(dbHash)) {
-                                
-                                // 🔥 ADMIN BYPASS
                                 if (finalIsAdmin) {
-                                    Toast.makeText(DashboardActivity.this, "Admin Bypass Active 🚀", Toast.LENGTH_SHORT).show();
+                                    showCustomToast("Admin Bypass Active 🚀", true);
                                     markAttendanceInDatabase();
-                                } 
-                                // 👤 NORMAL STUDENT CHECK
-                                else {
-                                    String currentWifi = getCurrentSsid();
-                                    
-                                    if (currentWifi == null || currentWifi.equals("<unknown ssid>")) {
-                                        Toast.makeText(DashboardActivity.this, "⚠️ Please turn ON Location (GPS) to verify Wi-Fi!", Toast.LENGTH_LONG).show();
-                                    } 
-                                    else if (dbWifi == null || dbWifi.isEmpty() || currentWifi.equals(dbWifi)) {
+                                } else {
+                                    if (dbAllowedIP == null || dbAllowedIP.isEmpty() || studentIP.equals(dbAllowedIP)) {
                                         markAttendanceInDatabase();
-                                    } 
-                                    else {
-                                        Toast.makeText(DashboardActivity.this, "Proxy Blocked! Connect to Library Wi-Fi (" + dbWifi + ")", Toast.LENGTH_LONG).show();
+                                    } else {
+                                        showCustomToast("Proxy Blocked! Connect to Library Wi-Fi.", false);
                                     }
                                 }
                             } else {
-                                Toast.makeText(DashboardActivity.this, "Invalid or Old QR Code!", Toast.LENGTH_LONG).show();
+                                showCustomToast("Invalid or Old QR Code!", false);
                             }
                         }
                     }
@@ -348,7 +357,6 @@ public class DashboardActivity extends FragmentActivity {
         });
     }
 
-    // 🔥 NEW: Final Marking logic with Server Time
     private void markAttendanceInDatabase() {
         DatabaseReference offsetRef = FirebaseDatabase.getInstance().getReference(".info/serverTimeOffset");
         offsetRef.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -360,20 +368,17 @@ public class DashboardActivity extends FragmentActivity {
 
                 SimpleDateFormat dateSdf = new SimpleDateFormat("dd MMMM yyyy", Locale.ENGLISH);
                 SimpleDateFormat timeSdf = new SimpleDateFormat("hh:mm a", Locale.ENGLISH);
-
                 String dateString = dateSdf.format(onlineDate);
                 String timeString = timeSdf.format(onlineDate);
 
-                DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance")
-                        .child(savedUsername).child(dateString);
-
+                DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername).child(dateString);
                 attRef.child("checkIn").setValue(timeString).addOnCompleteListener(task -> {
                     if(task.isSuccessful()){
-                        Toast.makeText(DashboardActivity.this, "Attendance Marked Successfully! ✅", Toast.LENGTH_LONG).show();
-                        checkTodayAttendance(); // Refresh UI instantly
-                        calculateMonthlyAttendance(); // Update stats
+                        showCustomToast("Attendance Marked Successfully!", true);
+                        checkTodayAttendance(); 
+                        calculateMonthlyAttendance(); 
                     } else {
-                        Toast.makeText(DashboardActivity.this, "Failed to mark attendance. Try again.", Toast.LENGTH_SHORT).show();
+                        showCustomToast("Failed to mark attendance.", false);
                     }
                 });
             }
@@ -404,7 +409,7 @@ public class DashboardActivity extends FragmentActivity {
         } else if (targetState == STATE_RULES) { 
             openFragmentWithAnimation(new RulesFragment());
         } else if (targetState == STATE_MORE) {
-            Toast.makeText(this, "More Settings Menu Coming Soon", Toast.LENGTH_SHORT).show();
+            showCustomToast("More Settings Menu Coming Soon", false);
         }
     }
 
@@ -576,11 +581,13 @@ public class DashboardActivity extends FragmentActivity {
             @Override
             public void onDataChange(DataSnapshot snapshot) {
                 if (snapshot.exists()) {
+                    isAttendanceMarkedToday = true; // 🔥 Block Scanner Flag
                     String checkInTime = snapshot.child("checkIn").getValue(String.class);
                     tvTodayStatus.setText("Marked ✓");
                     tvTodayStatus.setTextColor(Color.parseColor("#10B981"));
                     if (tvAttTime != null) tvAttTime.setText(checkInTime);
                 } else {
+                    isAttendanceMarkedToday = false; // 🔥 Allow Scanner Flag
                     tvTodayStatus.setText("Not Marked");
                     tvTodayStatus.setTextColor(Color.parseColor("#EF4444"));
                     if (tvAttTime != null) tvAttTime.setText("__:__");
