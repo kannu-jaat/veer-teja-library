@@ -275,34 +275,43 @@ public class DashboardActivity extends FragmentActivity {
         barcodeLauncher.launch(options);
     }
 
-    // 🔥 NEW: Background IP Fetching with Trim
+        // 🔥 UPDATED: Switch IP Auth based on Cache
     private void verifyQrAndMarkAttendance(String scannedData) {
         showCustomToast("Verifying securely...", true);
         
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://api.ipify.org");
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                java.util.Scanner scanner = new java.util.Scanner(connection.getInputStream());
-                
-                // 🔥 .trim() added here to remove invisible spaces/newlines
-                String myPublicIP = scanner.useDelimiter("\\A").hasNext() ? scanner.next().trim() : "";
-                scanner.close();
+        // Cache se pucho IP auth on hai ya off (default "no" rakha hai)
+        boolean isIpAuthRequired = "yes".equalsIgnoreCase(prefs.getString("feature_ip", "no"));
 
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    verifyQrWithIP(scannedData, myPublicIP);
-                });
-            } catch (Exception e) {
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    showCustomToast("Network Error! Try again.", false);
-                });
-            }
-        }).start();
+        if (isIpAuthRequired) {
+            // IP Authentication ON hai, API se IP mangwao
+            new Thread(() -> {
+                try {
+                    URL url = new URL("https://api.ipify.org");
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    connection.setRequestMethod("GET");
+                    java.util.Scanner scanner = new java.util.Scanner(connection.getInputStream());
+                    
+                    String myPublicIP = scanner.useDelimiter("\\A").hasNext() ? scanner.next().trim() : "";
+                    scanner.close();
+
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        verifyQrWithIP(scannedData, myPublicIP);
+                    });
+                } catch (Exception e) {
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        showCustomToast("Network Error! Try again.", false);
+                    });
+                }
+            }).start();
+        } else {
+            // IP Authentication OFF hai, seedha null bhej do bina API call kiye
+            verifyQrWithIP(scannedData, null); 
+        }
     }
 
 
-        // 🔥 NEW: IP Verification & Checks (With Debug Mode)
+
+            // 🔥 UPDATED: IP verification logic
     private void verifyQrWithIP(String scannedData, String studentIP) {
         String extractedHash = "";
         try {
@@ -342,14 +351,16 @@ public class DashboardActivity extends FragmentActivity {
                                     showCustomToast("Admin Bypass Active 🚀", true);
                                     markAttendanceInDatabase();
                                 } else {
-                                    // 🔥 CLEANING DB IP BEFORE MATCHING
-                                    String cleanDbIP = (dbAllowedIP != null) ? dbAllowedIP.trim() : "";
-                                    
-                                    if (cleanDbIP.isEmpty() || studentIP.equals(cleanDbIP)) {
-                                        markAttendanceInDatabase();
+                                    // 🔥 NAYA LOGIC: Agar studentIP null hai, matlab IP Auth OFF hai
+                                    if (studentIP == null) {
+                                        markAttendanceInDatabase(); // Direct Entry!
                                     } else {
-                                        // 🔥 DEBUG TOAST: Yeh aapko batayega ki problem kahan hai
-                                        showCustomToast("Proxy Blocked!\nMy IP: " + studentIP + "\nDB IP: " + cleanDbIP, false);
+                                        String cleanDbIP = (dbAllowedIP != null) ? dbAllowedIP.trim() : "";
+                                        if (cleanDbIP.isEmpty() || studentIP.equals(cleanDbIP)) {
+                                            markAttendanceInDatabase();
+                                        } else {
+                                            showCustomToast("Proxy Blocked!\nMy IP: " + studentIP + "\nDB IP: " + cleanDbIP, false);
+                                        }
                                     }
                                 }
                             } else {
