@@ -58,12 +58,13 @@
         
 <activity android:name=".AttendanceActivity" android:screenOrientation="portrait"/>
 
-        <!-- Portrait QR Scanner Activity -->
+                <!-- Portrait QR Scanner Activity -->
         <activity 
             android:name=".PortraitCaptureActivity"
             android:screenOrientation="portrait"
             android:stateNotNeeded="true"
-            android:theme="@style/Theme.AppCompat.NoActionBar" />
+            android:theme="@android:style/Theme.NoTitleBar" /> <!-- 🔥 FIX: Universal Theme -->
+
 
 
         <!-- 3. BACKGROUND NOTIFICATION SERVICE -->
