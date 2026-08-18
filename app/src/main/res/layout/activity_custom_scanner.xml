@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- The Live Camera Scanner View -->
+    <com.journeyapps.barcodescanner.DecoratedBarcodeView
+        android:id="@+id/zxing_barcode_scanner"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Upload From Gallery Button (Hidden by default) -->
+    <LinearLayout
+        android:id="@+id/btnGalleryContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="50dp"
+        android:background="#334155"
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:elevation="8dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:visibility="gone">
+        <!-- visibility="gone" rakha hai, Java isko Firebase ke hisaab se show karega -->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🖼️ Upload from Gallery"
+            android:textColor="#38BDF8"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+    </LinearLayout>
+</RelativeLayout>
