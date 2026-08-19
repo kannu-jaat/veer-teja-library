@@ -435,4 +435,26 @@ public class DashboardActivity extends FragmentActivity {
             @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
+    // 🔥 Missing Internet Check Methods Add Kar Diye Hain
+    private void setupRealtimeInternetCheck() {
+        cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm != null && cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnected()) {
+            tvInternetWarning.setVisibility(View.GONE);
+        } else {
+            tvInternetWarning.setVisibility(View.VISIBLE);
+        }
+        NetworkRequest networkRequest = new NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build();
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override public void onAvailable(Network network) { runOnUiThread(() -> tvInternetWarning.setVisibility(View.GONE)); }
+            @Override public void onLost(Network network) { runOnUiThread(() -> tvInternetWarning.setVisibility(View.VISIBLE)); }
+        };
+        if (cm != null) cm.registerNetworkCallback(networkRequest, networkCallback);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (cm != null && networkCallback != null) cm.unregisterNetworkCallback(networkCallback);
+    }
+
 }
