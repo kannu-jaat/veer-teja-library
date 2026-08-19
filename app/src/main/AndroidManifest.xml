@@ -58,6 +58,12 @@
         
 <activity android:name=".AttendanceActivity" android:screenOrientation="portrait"/>
 
+<activity 
+    android:name=".ProfileActivity"
+    android:screenOrientation="portrait"
+    android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+
                 <!-- Portrait QR Scanner Activity -->
         <activity 
             android:name=".PortraitCaptureActivity"
