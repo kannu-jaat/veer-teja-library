@@ -51,13 +51,15 @@ import java.util.Locale;
 public class DashboardActivity extends FragmentActivity {
 
     private TextView tvGreeting, tvDashName, tvSeatNumber, tvMembershipType, tvValidity, tvInternetWarning;
-    private TextView tvTodayStatus, tvAttDate, tvAttTime, tvDaysPresent;
+    private TextView tvTodayStatus, tvStatusTitle, tvAttDate, tvAttTime, tvDaysPresent;
     private ImageView ivHeaderAvatar, ivStatusAvatar, btnNotifications;
 
+    // All Grid Buttons
     private LinearLayout btnMarkAttendGrid, btnMyAttendanceGrid, btnMySeatGrid, btnFeesGrid;
     private LinearLayout btnNoticesGrid, btnRulesGrid, btnProfileGrid, btnSupportGrid;
     private CardView cvLatestNotice;
 
+    // Bottom Nav Elements
     private LinearLayout btnDashboardNav, btnMyAttendanceNav, btnPaymentsNav, btnMoreNav;
     private ImageView ivDashboardIcon, ivAttendIcon, ivPaymentsIcon, ivMoreIcon;
     private TextView tvDashboardText, tvAttendText, tvPaymentsText, tvMoreText;
@@ -71,6 +73,7 @@ public class DashboardActivity extends FragmentActivity {
     private ConnectivityManager.NetworkCallback networkCallback;
     private ConnectivityManager cm;
 
+    // 🔥 SMART NAVIGATION & ATTENDANCE STATES
     private long lastClickTime = 0;
     private static final int STATE_DASHBOARD = 0;
     private static final int STATE_ATTENDANCE = 1;
@@ -78,17 +81,22 @@ public class DashboardActivity extends FragmentActivity {
     private static final int STATE_MORE = 3;
     private static final int STATE_RULES = 4;
     private int currentState = STATE_DASHBOARD;
+    
+    // Scanner block flag
     private boolean isAttendanceMarkedToday = false; 
 
+    // 🔥 Permission Launcher for Camera ONLY (No GPS)
     private final ActivityResultLauncher<String[]> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
-                if (result.getOrDefault(Manifest.permission.CAMERA, false)) {
+                Boolean cameraGranted = result.getOrDefault(Manifest.permission.CAMERA, false);
+                if (cameraGranted) {
                     launchQRScanner();
                 } else {
-                    showCustomToast("Camera permission required!", false);
+                    showCustomToast("Camera permission required for Attendance!", false);
                 }
             });
 
+    // 🔥 QR Scanner Result System
     private final ActivityResultLauncher<ScanOptions> barcodeLauncher = registerForActivityResult(new ScanContract(), result -> {
         if(result.getContents() != null) {
             verifyQrAndMarkAttendance(result.getContents());
@@ -126,6 +134,7 @@ public class DashboardActivity extends FragmentActivity {
         tvValidity = findViewById(R.id.tvValidity);
         tvDaysPresent = findViewById(R.id.tvDaysPresent);
         tvTodayStatus = findViewById(R.id.tvTodayStatus);
+        tvStatusTitle = findViewById(R.id.tvStatusTitle);
         tvAttDate = findViewById(R.id.tvAttDate);
         tvAttTime = findViewById(R.id.tvAttTime);
         ivStatusAvatar = findViewById(R.id.ivStatusAvatar);
@@ -166,7 +175,8 @@ public class DashboardActivity extends FragmentActivity {
 
     private void setupUIInfo() {
         setDynamicGreeting();
-        tvDashName.setText(prefs.getString("cachedName", "Student"));
+        String cachedName = prefs.getString("cachedName", "Student");
+        tvDashName.setText(cachedName);
         loadCachedProfileImage();
         fetchProfileDataFromFirebase();
         calculateMonthlyAttendance();
@@ -182,10 +192,6 @@ public class DashboardActivity extends FragmentActivity {
         btnMoreNav.setOnClickListener(v -> handleNavigation(STATE_MORE));
         btnRulesGrid.setOnClickListener(v -> handleNavigation(STATE_RULES));
 
-        // 🔥 Profile Clicks
-        btnProfileGrid.setOnClickListener(v -> openProfileWithAnimation());
-        if (ivHeaderAvatar != null) ivHeaderAvatar.setOnClickListener(v -> openProfileWithAnimation());
-
         btnSupportGrid.setOnClickListener(v -> {
             if (isSpamClick()) return;
             Intent intent = new Intent(Intent.ACTION_DIAL);
@@ -193,19 +199,29 @@ public class DashboardActivity extends FragmentActivity {
             startActivity(intent);
         });
 
+        // 🔥 Mark Attendance Clicks
         btnMarkAttendGrid.setOnClickListener(v -> checkPermissionsAndScan());
         btnCenterCameraFab.setOnClickListener(v -> checkPermissionsAndScan());
 
+        // 🔥 Profile Clicks (Naya code sirf yahan add kiya hai)
+        btnProfileGrid.setOnClickListener(v -> openProfileWithAnimation());
+        if (ivHeaderAvatar != null) {
+            ivHeaderAvatar.setOnClickListener(v -> openProfileWithAnimation());
+        }
+
+        // Inactive Features
         View.OnClickListener comingSoonListener = v -> {
             if (!isSpamClick()) showCustomToast("Feature coming soon!", false);
         };
 
         btnMySeatGrid.setOnClickListener(comingSoonListener);
         btnNoticesGrid.setOnClickListener(comingSoonListener);
+        // btnProfileGrid removed from comingSoonListener
         btnNotifications.setOnClickListener(comingSoonListener);
         cvLatestNotice.setOnClickListener(comingSoonListener);
     }
 
+    // 🔥 Profile kholne wala method
     private void openProfileWithAnimation() {
         if (isSpamClick()) return;
         Intent intent = new Intent(DashboardActivity.this, ProfileActivity.class);
@@ -213,33 +229,49 @@ public class DashboardActivity extends FragmentActivity {
         overridePendingTransition(R.anim.slide_in_bottom_right, 0);
     }
 
-    public void showCustomToast(String message, boolean isSuccess) {
+    // 🔥 Premium Custom Toast Programmatically Built
+    private void showCustomToast(String message, boolean isSuccess) {
         Toast toast = new Toast(this);
         toast.setDuration(Toast.LENGTH_LONG);
+
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.HORIZONTAL);
         layout.setPadding(40, 24, 40, 24);
         layout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        
         android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
-        gd.setColor(isSuccess ? Color.parseColor("#065F46") : Color.parseColor("#991B1B"));
+        gd.setColor(isSuccess ? Color.parseColor("#065F46") : Color.parseColor("#991B1B")); 
         gd.setCornerRadius(50f);
+        gd.setStroke(2, isSuccess ? Color.parseColor("#10B981") : Color.parseColor("#EF4444")); 
         layout.setBackground(gd);
+
+        TextView icon = new TextView(this);
+        icon.setText(isSuccess ? "✅" : "⚠️");
+        icon.setTextSize(16f);
+
         TextView tv = new TextView(this);
-        tv.setText((isSuccess ? "✅ " : "⚠️ ") + message);
+        tv.setText(message);
         tv.setTextColor(Color.WHITE);
         tv.setTextSize(14f);
+        tv.setPadding(20, 0, 0, 0);
         tv.setTypeface(null, android.graphics.Typeface.BOLD);
+
+        layout.addView(icon);
         layout.addView(tv);
+
         toast.setView(layout);
         toast.show();
     }
 
+    // 🔥 Check Flag before opening scanner (No GPS Needed)
     private void checkPermissionsAndScan() {
         if (isSpamClick()) return;
+
         if (isAttendanceMarkedToday) {
-            showCustomToast("Attendance already marked!", true);
+            showCustomToast("Attendance already marked for today!", true);
             return;
         }
+
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             launchQRScanner();
         } else {
@@ -249,7 +281,7 @@ public class DashboardActivity extends FragmentActivity {
 
     private void launchQRScanner() {
         ScanOptions options = new ScanOptions();
-        options.setPrompt("Scan Library QR");
+        options.setPrompt("Scan Library QR to Mark Attendance");
         options.setBeepEnabled(true);
         options.setOrientationLocked(true);
         options.setCaptureActivity(PortraitCaptureActivity.class); 
@@ -257,29 +289,41 @@ public class DashboardActivity extends FragmentActivity {
         barcodeLauncher.launch(options);
     }
 
+    // 🔥 UPDATED: Switch IP Auth based on Cache
     private void verifyQrAndMarkAttendance(String scannedData) {
         showCustomToast("Verifying securely...", true);
+        
+        // Cache se pucho IP auth on hai ya off (default "no" rakha hai)
         boolean isIpAuthRequired = "yes".equalsIgnoreCase(prefs.getString("feature_ip", "no"));
 
         if (isIpAuthRequired) {
+            // IP Authentication ON hai, API se IP mangwao
             new Thread(() -> {
                 try {
                     URL url = new URL("https://api.ipify.org");
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                     connection.setRequestMethod("GET");
                     java.util.Scanner scanner = new java.util.Scanner(connection.getInputStream());
+                    
                     String myPublicIP = scanner.useDelimiter("\\A").hasNext() ? scanner.next().trim() : "";
                     scanner.close();
-                    new Handler(Looper.getMainLooper()).post(() -> verifyQrWithIP(scannedData, myPublicIP));
+
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        verifyQrWithIP(scannedData, myPublicIP);
+                    });
                 } catch (Exception e) {
-                    new Handler(Looper.getMainLooper()).post(() -> showCustomToast("Network Error!", false));
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        showCustomToast("Network Error! Try again.", false);
+                    });
                 }
             }).start();
         } else {
+            // IP Authentication OFF hai, seedha null bhej do bina API call kiye
             verifyQrWithIP(scannedData, null); 
         }
     }
 
+    // 🔥 UPDATED: IP verification logic
     private void verifyQrWithIP(String scannedData, String studentIP) {
         String extractedHash = "";
         try {
@@ -289,12 +333,23 @@ public class DashboardActivity extends FragmentActivity {
             showCustomToast("Invalid QR Format!", false);
             return;
         }
+
         final String finalScannedHash = extractedHash;
+
         DatabaseReference studentRef = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername);
         studentRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot studentSnap) {
-                boolean isAdmin = studentSnap.hasChild("Admin") && "true".equalsIgnoreCase(String.valueOf(studentSnap.child("Admin").getValue()));
+                boolean isAdmin = false;
+                if(studentSnap.hasChild("Admin")) {
+                    Object adminObj = studentSnap.child("Admin").getValue();
+                    if(adminObj != null && adminObj.toString().equalsIgnoreCase("true")) {
+                        isAdmin = true;
+                    }
+                }
+                
+                final boolean finalIsAdmin = isAdmin;
+
                 DatabaseReference qrRef = FirebaseDatabase.getInstance().getReference("QRConfig/current");
                 qrRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
@@ -302,14 +357,26 @@ public class DashboardActivity extends FragmentActivity {
                         if(qrSnap.exists()) {
                             String dbHash = qrSnap.child("hash").getValue(String.class);
                             String dbAllowedIP = qrSnap.child("allowedIP").getValue(String.class);
+
                             if (dbHash != null && finalScannedHash.equals(dbHash)) {
-                                if (isAdmin || studentIP == null || studentIP.equals((dbAllowedIP != null ? dbAllowedIP.trim() : ""))) {
+                                if (finalIsAdmin) {
+                                    showCustomToast("Admin Bypass Active 🚀", true);
                                     markAttendanceInDatabase();
                                 } else {
-                                    showCustomToast("Proxy Blocked!", false);
+                                    // 🔥 NAYA LOGIC: Agar studentIP null hai, matlab IP Auth OFF hai
+                                    if (studentIP == null) {
+                                        markAttendanceInDatabase(); // Direct Entry!
+                                    } else {
+                                        String cleanDbIP = (dbAllowedIP != null) ? dbAllowedIP.trim() : "";
+                                        if (cleanDbIP.isEmpty() || studentIP.equals(cleanDbIP)) {
+                                            markAttendanceInDatabase();
+                                        } else {
+                                            showCustomToast("Proxy Blocked!\nMy IP: " + studentIP + "\nDB IP: " + cleanDbIP, false);
+                                        }
+                                    }
                                 }
                             } else {
-                                showCustomToast("Invalid/Old QR Code!", false);
+                                showCustomToast("Invalid or Old QR Code!", false);
                             }
                         }
                     }
@@ -321,18 +388,27 @@ public class DashboardActivity extends FragmentActivity {
     }
 
     private void markAttendanceInDatabase() {
-        FirebaseDatabase.getInstance().getReference(".info/serverTimeOffset").addListenerForSingleValueEvent(new ValueEventListener() {
+        DatabaseReference offsetRef = FirebaseDatabase.getInstance().getReference(".info/serverTimeOffset");
+        offsetRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot offsetSnapshot) {
                 long offset = offsetSnapshot.exists() ? offsetSnapshot.getValue(Long.class) : 0;
-                String dateString = new SimpleDateFormat("dd MMMM yyyy", Locale.ENGLISH).format(new Date(System.currentTimeMillis() + offset));
-                String timeString = new SimpleDateFormat("hh:mm a", Locale.ENGLISH).format(new Date(System.currentTimeMillis() + offset));
+                long estimatedServerTimeMs = System.currentTimeMillis() + offset;
+                Date onlineDate = new Date(estimatedServerTimeMs);
 
-                FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername).child(dateString).child("checkIn").setValue(timeString).addOnCompleteListener(task -> {
+                SimpleDateFormat dateSdf = new SimpleDateFormat("dd MMMM yyyy", Locale.ENGLISH);
+                SimpleDateFormat timeSdf = new SimpleDateFormat("hh:mm a", Locale.ENGLISH);
+                String dateString = dateSdf.format(onlineDate);
+                String timeString = timeSdf.format(onlineDate);
+
+                DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername).child(dateString);
+                attRef.child("checkIn").setValue(timeString).addOnCompleteListener(task -> {
                     if(task.isSuccessful()){
-                        showCustomToast("Attendance Marked!", true);
+                        showCustomToast("Attendance Marked Successfully!", true);
                         checkTodayAttendance(); 
                         calculateMonthlyAttendance(); 
+                    } else {
+                        showCustomToast("Failed to mark attendance.", false);
                     }
                 });
             }
@@ -341,101 +417,97 @@ public class DashboardActivity extends FragmentActivity {
     }
 
     private boolean isSpamClick() {
-        if (System.currentTimeMillis() - lastClickTime < 600) return true;
+        if (System.currentTimeMillis() - lastClickTime < 600) {
+            return true;
+        }
         lastClickTime = System.currentTimeMillis();
         return false;
     }
 
     private void handleNavigation(int targetState) {
         if (isSpamClick() || currentState == targetState) return;
+
         currentState = targetState;
         updateBottomNavColors(targetState);
-        if (targetState == STATE_DASHBOARD) closeFragmentWithAnimation();
-        else if (targetState == STATE_ATTENDANCE) openFragmentWithAnimation(new AttendanceFragment());
-        else if (targetState == STATE_PAYMENTS) openFragmentWithAnimation(new FeesFragment());
-        else if (targetState == STATE_RULES) openFragmentWithAnimation(new RulesFragment());
+
+        if (targetState == STATE_DASHBOARD) {
+            closeFragmentWithAnimation();
+        } else if (targetState == STATE_ATTENDANCE) {
+            openFragmentWithAnimation(new AttendanceFragment());
+        } else if (targetState == STATE_PAYMENTS) {
+            openFragmentWithAnimation(new FeesFragment());
+        } else if (targetState == STATE_RULES) { 
+            openFragmentWithAnimation(new RulesFragment());
+        } else if (targetState == STATE_MORE) {
+            showCustomToast("More Settings Menu Coming Soon", false);
+        }
     }
 
     private void updateBottomNavColors(int activeState) {
-        int gray = Color.parseColor("#94A3B8");
-        int gold = Color.parseColor("#FBBF24");
-        ivDashboardIcon.setColorFilter(activeState == STATE_DASHBOARD ? gold : gray);
-        ivAttendIcon.setColorFilter(activeState == STATE_ATTENDANCE ? gold : gray);
-        ivPaymentsIcon.setColorFilter(activeState == STATE_PAYMENTS ? gold : gray);
-        ivMoreIcon.setColorFilter(activeState == STATE_MORE ? gold : gray);
+        int grayColor = Color.parseColor("#94A3B8");
+        ivDashboardIcon.setColorFilter(grayColor); tvDashboardText.setTextColor(grayColor);
+        ivAttendIcon.setColorFilter(grayColor);    tvAttendText.setTextColor(grayColor);
+        ivPaymentsIcon.setColorFilter(grayColor);  tvPaymentsText.setTextColor(grayColor);
+        ivMoreIcon.setColorFilter(grayColor);      tvMoreText.setTextColor(grayColor);
+
+        int activeColor = Color.parseColor("#FBBF24");
+        switch (activeState) {
+            case STATE_DASHBOARD:
+                ivDashboardIcon.setColorFilter(activeColor); tvDashboardText.setTextColor(activeColor);
+                break;
+            case STATE_ATTENDANCE:
+                ivAttendIcon.setColorFilter(activeColor); tvAttendText.setTextColor(activeColor);
+                break;
+            case STATE_PAYMENTS:
+                ivPaymentsIcon.setColorFilter(activeColor); tvPaymentsText.setTextColor(activeColor);
+                break;
+            case STATE_MORE:
+                ivMoreIcon.setColorFilter(activeColor); tvMoreText.setTextColor(activeColor);
+                break;
+        }
     }
 
     private void openFragmentWithAnimation(Fragment fragment) {
         dashboardBottomContent.setVisibility(View.GONE);
         fragmentContainer.setVisibility(View.VISIBLE);
-        getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container, fragment).commit();
+
+        fragmentContainer.setScaleX(0.5f);
+        fragmentContainer.setScaleY(0.5f);
+        fragmentContainer.setAlpha(0f);
+        fragmentContainer.animate()
+                .scaleX(1f).scaleY(1f).alpha(1f)
+                .setDuration(350) 
+                .start();
+
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .commit();
     }
 
     public void closeFragmentWithAnimation() {
         currentState = STATE_DASHBOARD;
         updateBottomNavColors(STATE_DASHBOARD);
-        fragmentContainer.setVisibility(View.GONE);
-        dashboardBottomContent.setVisibility(View.VISIBLE);
+
+        fragmentContainer.animate()
+                .scaleX(0.5f).scaleY(0.5f).alpha(0f)
+                .setDuration(300)
+                .withEndAction(() -> {
+                    fragmentContainer.setVisibility(View.GONE);
+                    dashboardBottomContent.setVisibility(View.VISIBLE);
+                    dashboardBottomContent.setAlpha(0f);
+                    dashboardBottomContent.animate().alpha(1f).setDuration(200).start();
+                }).start();
     }
 
-    private void setDynamicGreeting() {
-        int h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        tvGreeting.setText(h < 12 ? "Good Morning," : (h < 16 ? "Good Afternoon," : "Good Evening,"));
+    @Override
+    public void onBackPressed() {
+        if (fragmentContainer.getVisibility() == View.VISIBLE) {
+            closeFragmentWithAnimation();
+        } else {
+            super.onBackPressed();
+        }
     }
 
-    private void loadCachedProfileImage() {
-        File f = new File(getFilesDir(), "profile_avatar.jpg");
-        if (f.exists()) ivHeaderAvatar.setImageBitmap(BitmapFactory.decodeFile(f.getAbsolutePath()));
-    }
-
-    private void fetchProfileDataFromFirebase() {
-        FirebaseDatabase.getInstance().getReference("Students").child(savedUsername).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot s) {
-                if (s.exists()) {
-                    tvDashName.setText(s.child("fullName").getValue(String.class));
-                    tvSeatNumber.setText(s.child("seatNumber").getValue(String.class));
-                    tvMembershipType.setText(s.child("membership").getValue(String.class));
-                }
-            }
-            @Override public void onCancelled(@NonNull DatabaseError error) {}
-        });
-    }
-
-    private void calculateMonthlyAttendance() {
-        String mY = new SimpleDateFormat("MMMM yyyy", Locale.ENGLISH).format(new Date());
-        FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot s) {
-                int p = 0;
-                for (DataSnapshot d : s.getChildren()) if (d.getKey() != null && d.getKey().endsWith(mY)) p++;
-                if (tvDaysPresent != null) tvDaysPresent.setText(String.valueOf(p));
-            }
-            @Override public void onCancelled(@NonNull DatabaseError error) {}
-        });
-    }
-
-    private void checkTodayAttendance() {
-        String dS = new SimpleDateFormat("dd MMMM yyyy", Locale.ENGLISH).format(new Date());
-        if (tvAttDate != null) tvAttDate.setText(dS);
-        FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername).child(dS).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot s) {
-                if (s.exists()) {
-                    isAttendanceMarkedToday = true;
-                    tvTodayStatus.setText("Marked ✓");
-                    tvTodayStatus.setTextColor(Color.parseColor("#10B981"));
-                    if (tvAttTime != null) tvAttTime.setText(s.child("checkIn").getValue(String.class));
-                } else {
-                    isAttendanceMarkedToday = false;
-                    tvTodayStatus.setText("Not Marked");
-                    tvTodayStatus.setTextColor(Color.parseColor("#EF4444"));
-                }
-            }
-            @Override public void onCancelled(@NonNull DatabaseError error) {}
-        });
-    }
-    // 🔥 Missing Internet Check Methods Add Kar Diye Hain
     private void setupRealtimeInternetCheck() {
         cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm != null && cm.getActiveNetworkInfo() != null && cm.getActiveNetworkInfo().isConnected()) {
@@ -457,4 +529,128 @@ public class DashboardActivity extends FragmentActivity {
         if (cm != null && networkCallback != null) cm.unregisterNetworkCallback(networkCallback);
     }
 
+    private void setDynamicGreeting() {
+        Calendar c = Calendar.getInstance();
+        int timeOfDay = c.get(Calendar.HOUR_OF_DAY);
+        if (timeOfDay >= 0 && timeOfDay < 12) tvGreeting.setText("Good Morning,");
+        else if (timeOfDay >= 12 && timeOfDay < 16) tvGreeting.setText("Good Afternoon,");
+        else tvGreeting.setText("Good Evening,");
+    }
+
+    private void loadCachedProfileImage() {
+        File imgFile = new File(getFilesDir(), "profile_avatar.jpg");
+        if (imgFile.exists()) {
+            Bitmap myBitmap = BitmapFactory.decodeFile(imgFile.getAbsolutePath());
+            if (ivHeaderAvatar != null) ivHeaderAvatar.setImageBitmap(myBitmap);
+            if (ivStatusAvatar != null) ivStatusAvatar.setImageBitmap(myBitmap);
+        }
+    }
+
+    private void fetchProfileDataFromFirebase() {
+        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername);
+        ref.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    String fullName = snapshot.child("fullName").getValue(String.class);
+                    String seat = snapshot.child("seatNumber").getValue(String.class);
+                    String membership = snapshot.child("membership").getValue(String.class);
+                    String validTill = snapshot.child("validTill").getValue(String.class);
+                    String photoUrl = snapshot.child("photoUrl").getValue(String.class);
+
+                    if (fullName != null) {
+                        tvDashName.setText(fullName);
+                        prefs.edit().putString("cachedName", fullName).apply();
+                    }
+                    if (seat != null && !seat.isEmpty()) tvSeatNumber.setText(seat);
+                    else tvSeatNumber.setText(" ");
+
+                    if (membership != null && !membership.isEmpty()) {
+                        tvMembershipType.setText(membership);
+                        tvMembershipType.setTextColor(Color.parseColor("#FBBF24"));
+                    } else {
+                        tvMembershipType.setText("Pending");
+                    }
+
+                    if (validTill != null && !validTill.isEmpty()) tvValidity.setText("Valid till " + validTill);
+                    else tvValidity.setText("Valid till --");
+
+                    String lastSavedUrl = prefs.getString("cachedImageUrl", "");
+                    if (photoUrl != null && !photoUrl.isEmpty() && !photoUrl.equals(lastSavedUrl)) {
+                        downloadAndCacheImage(photoUrl);
+                    }
+                }
+            }
+            @Override public void onCancelled(DatabaseError error) {}
+        });
+    }
+
+    private void calculateMonthlyAttendance() {
+        String currentMonthYear = new SimpleDateFormat("MMMM yyyy", Locale.ENGLISH).format(new Date());
+        DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername);
+        attRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                int presentDays = 0;
+                for (DataSnapshot daySnap : snapshot.getChildren()) {
+                    String dateKey = daySnap.getKey(); 
+                    if (dateKey != null && dateKey.endsWith(currentMonthYear)) presentDays++;
+                }
+                if (tvDaysPresent != null) tvDaysPresent.setText(String.valueOf(presentDays));
+            }
+            @Override public void onCancelled(DatabaseError error) {}
+        });
+    }
+
+    private void checkTodayAttendance() {
+        String todayDateString = new SimpleDateFormat("dd MMMM yyyy", Locale.ENGLISH).format(new Date());
+        if (tvAttDate != null) tvAttDate.setText(todayDateString);
+
+        DatabaseReference attRef = FirebaseDatabase.getInstance().getReference("Attendance").child(savedUsername).child(todayDateString);
+        attRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    isAttendanceMarkedToday = true; // 🔥 Block Scanner Flag
+                    String checkInTime = snapshot.child("checkIn").getValue(String.class);
+                    tvTodayStatus.setText("Marked ✓");
+                    tvTodayStatus.setTextColor(Color.parseColor("#10B981"));
+                    if (tvAttTime != null) tvAttTime.setText(checkInTime);
+                } else {
+                    isAttendanceMarkedToday = false; // 🔥 Allow Scanner Flag
+                    tvTodayStatus.setText("Not Marked");
+                    tvTodayStatus.setTextColor(Color.parseColor("#EF4444"));
+                    if (tvAttTime != null) tvAttTime.setText("__:__");
+                }
+            }
+            @Override public void onCancelled(DatabaseError error) {}
+        });
+    }
+
+    private void downloadAndCacheImage(String urlString) {
+        new Thread(() -> {
+            try {
+                URL url = new URL(urlString);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setDoInput(true);
+                connection.connect();
+                InputStream input = connection.getInputStream();
+                Bitmap myBitmap = BitmapFactory.decodeStream(input);
+
+                if (myBitmap != null) {
+                    File file = new File(getFilesDir(), "profile_avatar.jpg");
+                    FileOutputStream fos = new FileOutputStream(file);
+                    myBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+                    fos.flush(); fos.close();
+
+                    prefs.edit().putString("cachedImageUrl", urlString).apply();
+
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        if (ivHeaderAvatar != null) ivHeaderAvatar.setImageBitmap(myBitmap);
+                        if (ivStatusAvatar != null) ivStatusAvatar.setImageBitmap(myBitmap);
+                    });
+                }
+            } catch (Exception e) {}
+        }).start();
+    }
 }
