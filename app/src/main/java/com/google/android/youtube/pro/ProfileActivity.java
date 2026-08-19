@@ -42,10 +42,6 @@ import java.net.URL;
 
 public class ProfileActivity extends AppCompatActivity {
 
-    // 🔥 SET CLOUDINARY DETAILS HERE
-    private static final String CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload";
-    private static final String UPLOAD_PRESET = "YOUR_UNSIGNED_PRESET";
-
     private ImageView btnBack, ivProfileImage, btnUpdatePhoto;
     private TextView tvFullNameHeader, tvUsernameHeader, tvStatusBadge, tvMemberSince;
     private Button btnLogout, btnEditProfile;
@@ -141,7 +137,7 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
-    // 🔥 CLOUDINARY UPLOAD ENGINE (Pure HTTP, No Heavy SDKs)
+    // 🔥 CLOUDINARY UPLOAD ENGINE (Using AppConfig dynamically)
     private void uploadImageToCloudinary(Bitmap bitmap) {
         showCustomToast("Uploading new photo...", true);
 
@@ -153,10 +149,12 @@ public class ProfileActivity extends AppCompatActivity {
                 byte[] byteArray = byteArrayOutputStream.toByteArray();
                 String base64Image = "data:image/jpeg;base64," + Base64.encodeToString(byteArray, Base64.DEFAULT);
 
-                // 2. Prepare HTTP POST request
-                String postData = "upload_preset=" + UPLOAD_PRESET + "&file=" + java.net.URLEncoder.encode(base64Image, "UTF-8");
+                // 🔥 Use dynamic values from AppConfig
+                String cloudinaryUrl = "https://api.cloudinary.com/v1_1/" + AppConfig.CLOUDINARY_CLOUD_NAME + "/image/upload";
+                String postData = "upload_preset=" + AppConfig.CLOUDINARY_UPLOAD_PRESET + "&file=" + java.net.URLEncoder.encode(base64Image, "UTF-8");
 
-                URL url = new URL(CLOUDINARY_URL);
+                // 2. Prepare HTTP POST request
+                URL url = new URL(cloudinaryUrl);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
@@ -233,6 +231,6 @@ public class ProfileActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        overridePendingTransition(0, R.anim.slide_out_top_left); // Opposite animation
+        overridePendingTransition(0, R.anim.slide_out_top_left); 
     }
 }
