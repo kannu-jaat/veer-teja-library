@@ -154,8 +154,7 @@
             android:textColor="#FFFFFF"
             android:backgroundTint="#4F46E5"
             android:textAllCaps="false"
-            android:layout_marginBottom="12dp"
-            app:cornerRadius="12dp"/>
+            android:layout_marginBottom="12dp"/>
 
         <Button
             android:id="@+id/btnLogout"
@@ -164,7 +163,6 @@
             android:text="Secure Logout"
             android:textColor="#EF4444"
             android:backgroundTint="#FEE2E2"
-            android:textAllCaps="false"
-            app:cornerRadius="12dp"/>
+            android:textAllCaps="false"/>
     </LinearLayout>
 </RelativeLayout>
