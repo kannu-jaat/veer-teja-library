@@ -20,4 +20,14 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="30dp" />
 
+<ProgressBar
+    android:id="@+id/splashProgress"
+    style="?android:attr/progressBarStyleHorizontal"
+    android:layout_width="match_parent"
+    android:layout_height="4dp"
+    android:layout_marginTop="16dp"
+    android:indeterminate="true"
+    android:indeterminateTint="#FF0000" /> <!-- Red color for YouTube style -->
+
+
 </RelativeLayout>
