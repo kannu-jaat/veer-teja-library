@@ -1,5 +1,6 @@
 package com.google.android.youtube.pro;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,7 +12,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity; // Activity ki jagah AppCompatActivity use karein
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -24,7 +24,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     private SharedPreferences prefs;
     private Handler splashHandler;
@@ -45,26 +45,33 @@ public class MainActivity extends AppCompatActivity {
 
         prefs = getSharedPreferences("LibraryApp", Context.MODE_PRIVATE);
 
-        // App Features Firebase background me load karega, app hang nahi hogi
+        startNotificationService();
+
+        // Splash screen chalte waqt background me AppFeatures fetch kar lo
         fetchAppFeaturesAndCache();
 
-        // Handler ko class level pe rakha hai taaki crash na ho
+        // Handler initialize kiya (taki app close hone pe cancel kar sakein)
         splashHandler = new Handler(Looper.getMainLooper());
         splashRunnable = new Runnable() {
             @Override
             public void run() {
-                checkInternetAndProceed();
+                // Firebase check karne se pehle actual internet/ping check karenge
+                checkRealInternet();
             }
         };
         splashHandler.postDelayed(splashRunnable, 2500);
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        // Memory leak bachane ke liye handler cancel karna zaroori hai
-        if (splashHandler != null && splashRunnable != null) {
-            splashHandler.removeCallbacks(splashRunnable);
+    private void startNotificationService() {
+        try {
+            Intent serviceIntent = new Intent(this, ForegroundService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -88,40 +95,43 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // 🔥 FIX 1: Real Internet (Ping) Check
-    private void checkInternetAndProceed() {
-        new Thread(() -> {
-            boolean hasInternet = isInternetAvailable();
-            runOnUiThread(() -> {
-                if (!hasInternet) {
-                    Toast.makeText(MainActivity.this, "Offline Mode: Loading saved data...", Toast.LENGTH_SHORT).show();
+    // 🔥 NAYA: Real Ping Test - Check karega ki sach me net / recharge hai ya nahi
+    private void checkRealInternet() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                boolean hasInternet = false;
+                try {
+                    // Google DNS ko ping karke check karna (1.5 sec timeout)
+                    int timeoutMs = 1500;
+                    Socket sock = new Socket();
+                    SocketAddress sockaddr = new InetSocketAddress("8.8.8.8", 53);
+                    sock.connect(sockaddr, timeoutMs);
+                    sock.close();
+                    hasInternet = true;
+                } catch (IOException e) {
+                    hasInternet = false;
                 }
-                checkLoginStatus(hasInternet);
-            });
+
+                final boolean finalHasInternet = hasInternet;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        checkLoginStatus(finalHasInternet);
+                    }
+                });
+            }
         }).start();
     }
 
-    // Ping check: Google DNS (8.8.8.8) ko check karega ki net chal raha hai ya nahi
-    private boolean isInternetAvailable() {
-        try {
-            int timeoutMs = 1500;
-            Socket sock = new Socket();
-            SocketAddress sockaddr = new InetSocketAddress("8.8.8.8", 53);
-            sock.connect(sockaddr, timeoutMs);
-            sock.close();
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
-    // 🔥 FIX 2: Offline me Cache Data se Login
+    // 🔥 MODIFIED: Internet status ke hisaab se action lega
     private void checkLoginStatus(boolean isOnline) {
         boolean isLoggedIn = prefs.getBoolean("isLoggedIn", false);
         String savedUsername = prefs.getString("username", "");
 
         if (isLoggedIn && !savedUsername.isEmpty()) {
             if (isOnline) {
+                // Net hai toh Firebase se live status check karo
                 DatabaseReference statusRef = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername).child("status");
                 statusRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
@@ -129,11 +139,6 @@ public class MainActivity extends AppCompatActivity {
                         if (snapshot.exists()) {
                             String currentStatus = snapshot.getValue(String.class);
                             if (currentStatus != null && currentStatus.equalsIgnoreCase("Approved")) {
-                                
-                                // ✅ ONLINE: Status cache me save kar lo taki offline pe kaam aaye
-                                prefs.edit().putString("cached_status", currentStatus).apply();
-                                
-                                startNotificationService();
                                 goToDashboard();
                             } else {
                                 Toast.makeText(MainActivity.this, "Your account is " + currentStatus + ". Please contact Admin.", Toast.LENGTH_LONG).show();
@@ -147,40 +152,16 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
-                        // Error aaye toh offline wala logic chala do
-                        handleOfflineLogin();
+                        goToDashboard(); // Default fallback
                     }
                 });
             } else {
-                // User offline hai, Firebase skip karke seedha cache check karo
-                handleOfflineLogin();
+                // Net nahi hai (Offline/Bina Recharge) -> Seedha purane cache se dashboard load karo
+                Toast.makeText(MainActivity.this, "You are Offline. Loading saved data...", Toast.LENGTH_SHORT).show();
+                goToDashboard();
             }
         } else {
             goToLogin();
-        }
-    }
-
-    private void handleOfflineLogin() {
-        String cachedStatus = prefs.getString("cached_status", "");
-        if (cachedStatus.equalsIgnoreCase("Approved")) {
-            startNotificationService();
-            goToDashboard();
-        } else {
-            Toast.makeText(this, "Please connect to the internet to verify your account first time.", Toast.LENGTH_LONG).show();
-            // Optional: goToLogin();
-        }
-    }
-
-    private void startNotificationService() {
-        try {
-            Intent serviceIntent = new Intent(this, ForegroundService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent);
-            } else {
-                startService(serviceIntent);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -196,21 +177,25 @@ public class MainActivity extends AppCompatActivity {
         finish();
     }
 
-    // 🔥 FIX 3: Logout Cache, Service aur Lag Problem Fix
-    public void clearDataAndLogout() {
-        // 1. Purani chal rahi Foreground Service ko force stop karein (Isse RAM free hogi)
-        Intent serviceIntent = new Intent(this, ForegroundService.class);
-        stopService(serviceIntent);
-
-        // 2. SharedPreferences pura clean karein
+    // 🔥 FIX: Lag issue aur Cache clear properly hoga ab
+    private void clearDataAndLogout() {
         SharedPreferences.Editor editor = prefs.edit();
-        editor.clear();
-        editor.apply();
+        editor.clear(); // Saara data saaf karega
+        editor.commit(); // apply() background me hota hai, commit() instant karta hai jisse lag na aaye
 
-        // 3. Nayi Activity kholte waqt Flags use karein taki purani Activity background se clear ho jaye (Lag hatane ke liye best)
         Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        // Ye flags purani Id ki Activity/Memory stack ko puri tarah hta denge, app fresh ho jayegi
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Memory Leak aur crash bachane ke liye (Agar user splash par app back/close kar de)
+        if (splashHandler != null && splashRunnable != null) {
+            splashHandler.removeCallbacks(splashRunnable);
+        }
     }
 }
