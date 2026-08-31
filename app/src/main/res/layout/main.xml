@@ -2,7 +2,9 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1A1A2E"> <TextView
+    android:background="#1A1A2E"> 
+
+    <TextView
         android:id="@+id/splashTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -13,21 +15,15 @@
         android:textStyle="bold"
         android:letterSpacing="0.1" />
 
+    <!-- YouTube Style Horizontal Progress Bar -->
     <ProgressBar
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:id="@+id/splashProgress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
         android:layout_below="@id/splashTitle"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="30dp" />
-
-<ProgressBar
-    android:id="@+id/splashProgress"
-    style="?android:attr/progressBarStyleHorizontal"
-    android:layout_width="match_parent"
-    android:layout_height="4dp"
-    android:layout_marginTop="16dp"
-    android:indeterminate="true"
-    android:indeterminateTint="#FF0000" /> <!-- Red color for YouTube style -->
-
+        android:layout_marginTop="30dp"
+        android:indeterminate="true"
+        android:indeterminateTint="#FF0000" /> 
 
 </RelativeLayout>
