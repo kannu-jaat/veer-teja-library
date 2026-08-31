@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -12,6 +14,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,121 +30,162 @@ import com.google.firebase.database.ValueEventListener;
 
 public class MainActivity extends Activity {
 
+    // ============================================================
+    // EXISTING STRUCTURE - DO NOT CHANGE
+    // ============================================================
+
     private static final String PREF_NAME = "LibraryApp";
 
-    // Existing keys - same structure
     private static final String KEY_LOGIN = "isLoggedIn";
     private static final String KEY_USERNAME = "username";
+
     private static final String KEY_FEATURE_IP = "feature_ip";
     private static final String KEY_FEATURE_QR = "feature_qr_upload";
 
-    // New key - same SharedPreferences file
+    // New internal key
     private static final String KEY_LAST_SERVER_VERIFICATION =
             "last_server_verification";
 
-    // Offline access allowed for maximum 3 days after last successful
-    // Firebase "Approved" verification.
-    private static final long OFFLINE_GRACE_PERIOD_MS =
-            3L * 24L * 60L * 60L * 1000L;
-
-    // Firebase status request timeout
-    private static final long STATUS_CHECK_TIMEOUT_MS = 6000L;
-
-    // Minimum splash duration
+    // Splash minimum duration
     private static final long MIN_SPLASH_DURATION_MS = 2500L;
+
+    // Firebase timeout
+    private static final long STATUS_CHECK_TIMEOUT_MS = 6000L;
 
     private SharedPreferences prefs;
 
-    private Handler splashHandler;
-    private Runnable splashRunnable;
+    private Handler mainHandler;
 
-    private Handler timeoutHandler;
+    private Runnable navigationRunnable;
+
     private Runnable statusTimeoutRunnable;
+
+    private DatabaseReference statusRef;
+
+    private ValueEventListener statusListener;
+
+    private boolean navigationStarted = false;
+
+    private boolean statusCheckFinished = false;
 
     private long splashStartTime;
 
-    // Prevent multiple navigation calls
-    private boolean navigationStarted = false;
 
-    // Prevent duplicate status verification callbacks
-    private boolean statusCheckFinished = false;
-
-    private DatabaseReference currentStatusRef;
-    private ValueEventListener currentStatusListener;
+    // ============================================================
+    // ON CREATE
+    // ============================================================
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.main);
 
         splashStartTime = System.currentTimeMillis();
 
-        prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        mainHandler = new Handler(Looper.getMainLooper());
 
-        setupSplashAnimation();
+        prefs = getSharedPreferences(
+                PREF_NAME,
+                Context.MODE_PRIVATE
+        );
+
+        setupSplash();
 
         // Existing notification service
         startNotificationService();
 
-        // Background feature cache update
+        // Fetch AppFeatures in background
         fetchAppFeaturesAndCache();
 
         /*
-         * IMPORTANT:
-         * Pehle 2.5 sec wait karke internet check nahi karenge.
-         * Internet/session checking immediately start hogi.
-         * Navigation minimum 2.5 sec splash ke baad hi hogi.
+         * Internet check immediately start hoga.
+         * Navigation minimum 2.5 sec ke baad hi hogi.
          */
-        splashHandler = new Handler(Looper.getMainLooper());
-
         checkRealInternet();
     }
 
-    private void setupSplashAnimation() {
+
+    // ============================================================
+    // SPLASH
+    // ============================================================
+
+    private void setupSplash() {
+
         TextView splashTitle = findViewById(R.id.splashTitle);
 
-        if (splashTitle != null) {
-            splashTitle.setText(AppConfig.LIBRARY_NAME);
-
-            splashTitle.setAlpha(0f);
-            splashTitle.setTranslationY(50f);
-
-            splashTitle.animate()
-                    .alpha(1f)
-                    .translationY(0f)
-                    .setDuration(1500)
-                    .start();
+        if (splashTitle == null) {
+            return;
         }
+
+        splashTitle.setText(
+                AppConfig.LIBRARY_NAME
+        );
+
+        splashTitle.setAlpha(0f);
+
+        splashTitle.setTranslationY(50f);
+
+        splashTitle.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(1500)
+                .start();
     }
 
+
+    // ============================================================
+    // NOTIFICATION SERVICE
+    // ============================================================
+
     private void startNotificationService() {
+
         try {
-            Intent serviceIntent = new Intent(this, ForegroundService.class);
+
+            Intent serviceIntent =
+                    new Intent(
+                            this,
+                            ForegroundService.class
+                    );
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent);
+
+                startForegroundService(
+                        serviceIntent
+                );
+
             } else {
-                startService(serviceIntent);
+
+                startService(
+                        serviceIntent
+                );
             }
 
         } catch (Exception e) {
+
             e.printStackTrace();
         }
     }
 
-    /**
-     * Existing AppFeatures structure preserved:
-     *
-     * AppFeatures
-     *   Ip
-     *   QrUpload
-     */
+
+    // ============================================================
+    // APP FEATURES CACHE
+    //
+    // Existing Firebase structure:
+    //
+    // AppFeatures
+    //     Ip
+    //     QrUpload
+    //
+    // ============================================================
+
     private void fetchAppFeaturesAndCache() {
 
         try {
 
             DatabaseReference featuresRef =
-                    FirebaseDatabase.getInstance()
+                    FirebaseDatabase
+                            .getInstance()
                             .getReference("AppFeatures");
 
             featuresRef.addListenerForSingleValueEvent(
@@ -147,7 +193,8 @@ public class MainActivity extends Activity {
 
                         @Override
                         public void onDataChange(
-                                @NonNull DataSnapshot snapshot) {
+                                @NonNull DataSnapshot snapshot
+                        ) {
 
                             if (!snapshot.exists()) {
                                 return;
@@ -165,6 +212,7 @@ public class MainActivity extends Activity {
                                     prefs.edit();
 
                             if (ipAuth != null) {
+
                                 editor.putString(
                                         KEY_FEATURE_IP,
                                         ipAuth
@@ -172,6 +220,7 @@ public class MainActivity extends Activity {
                             }
 
                             if (qrUpload != null) {
+
                                 editor.putString(
                                         KEY_FEATURE_QR,
                                         qrUpload
@@ -183,211 +232,255 @@ public class MainActivity extends Activity {
 
                         @Override
                         public void onCancelled(
-                                @NonNull DatabaseError error) {
+                                @NonNull DatabaseError error
+                        ) {
 
-                            // Important:
-                            // AppFeatures failure should NOT block app startup.
-                            error.toException().printStackTrace();
+                            // AppFeatures failure should not block startup.
+                            error.toException()
+                                    .printStackTrace();
                         }
                     }
             );
 
         } catch (Exception e) {
+
             e.printStackTrace();
         }
     }
 
-    /**
-     * Android network status check.
-     *
-     * Old implementation used:
-     * 8.8.8.8:53 socket
-     *
-     * That could produce false Offline results.
-     */
+
+    // ============================================================
+    // INTERNET / NETWORK CHECK
+    // ============================================================
+
     private void checkRealInternet() {
 
-        new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-
-                boolean hasInternet = false;
-
-                try {
-
-                    ConnectivityManager connectivityManager =
-                            (ConnectivityManager)
-                                    getSystemService(
-                                            Context.CONNECTIVITY_SERVICE
-                                    );
-
-                    if (connectivityManager != null) {
-
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-
-                            Network network =
-                                    connectivityManager
-                                            .getActiveNetwork();
-
-                            if (network != null) {
-
-                                NetworkCapabilities capabilities =
-                                        connectivityManager
-                                                .getNetworkCapabilities(
-                                                        network
-                                                );
-
-                                if (capabilities != null) {
-
-                                    boolean hasInternetCapability =
-                                            capabilities.hasCapability(
-                                                    NetworkCapabilities
-                                                            .NET_CAPABILITY_INTERNET
-                                            );
-
-                                    boolean isValidated =
-                                            capabilities.hasCapability(
-                                                    NetworkCapabilities
-                                                            .NET_CAPABILITY_VALIDATED
-                                            );
-
-                                    /*
-                                     * VALIDATED is the strongest signal.
-                                     *
-                                     * INTERNET is also accepted in case
-                                     * validation is temporarily unavailable.
-                                     */
-                                    hasInternet =
-                                            hasInternetCapability
-                                                    && (
-                                                    isValidated
-                                                            || capabilities
-                                                            .hasTransport(
-                                                                    NetworkCapabilities
-                                                                            .TRANSPORT_WIFI
-                                                            )
-                                                            || capabilities
-                                                            .hasTransport(
-                                                                    NetworkCapabilities
-                                                                            .TRANSPORT_CELLULAR
-                                                            )
-                                            );
-                                }
-                            }
-
-                        } else {
-
-                            // Compatibility for old Android
-                            NetworkInfo networkInfo =
-                                    connectivityManager
-                                            .getActiveNetworkInfo();
-
-                            hasInternet =
-                                    networkInfo != null
-                                            && networkInfo.isConnected();
-                        }
-                    }
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    hasInternet = false;
-                }
-
-                final boolean finalHasInternet = hasInternet;
-
-                runOnUiThread(new Runnable() {
+        new Thread(
+                new Runnable() {
 
                     @Override
                     public void run() {
 
-                        if (isFinishing()
-                                || (Build.VERSION.SDK_INT >= 17
-                                && isDestroyed())) {
-                            return;
+                        boolean hasNetwork =
+                                false;
+
+                        try {
+
+                            ConnectivityManager cm =
+                                    (ConnectivityManager)
+                                            getSystemService(
+                                                    Context.CONNECTIVITY_SERVICE
+                                            );
+
+                            if (cm != null) {
+
+                                if (Build.VERSION.SDK_INT
+                                        >= Build.VERSION_CODES.M) {
+
+                                    Network network =
+                                            cm.getActiveNetwork();
+
+                                    if (network != null) {
+
+                                        NetworkCapabilities capabilities =
+                                                cm.getNetworkCapabilities(
+                                                        network
+                                                );
+
+                                        if (capabilities != null) {
+
+                                            hasNetwork =
+                                                    capabilities.hasCapability(
+                                                            NetworkCapabilities
+                                                                    .NET_CAPABILITY_INTERNET
+                                                    );
+                                        }
+                                    }
+
+                                } else {
+
+                                    NetworkInfo info =
+                                            cm.getActiveNetworkInfo();
+
+                                    hasNetwork =
+                                            info != null
+                                                    && info.isConnected();
+                                }
+                            }
+
+                        } catch (Exception e) {
+
+                            e.printStackTrace();
+
+                            hasNetwork = false;
                         }
 
-                        checkLoginStatus(finalHasInternet);
+                        final boolean result =
+                                hasNetwork;
+
+                        runOnUiThread(
+                                new Runnable() {
+
+                                    @Override
+                                    public void run() {
+
+                                        if (isActivityDead()) {
+                                            return;
+                                        }
+
+                                        checkLoginStatus(
+                                                result
+                                        );
+                                    }
+                                }
+                        );
                     }
-                });
-
-            }
-
-        }).start();
+                }
+        ).start();
     }
 
-    private void checkLoginStatus(boolean isOnline) {
+
+    // ============================================================
+    // LOGIN STATUS
+    // ============================================================
+
+    private void checkLoginStatus(
+            boolean isOnline
+    ) {
 
         if (navigationStarted) {
             return;
         }
 
         boolean isLoggedIn =
-                prefs.getBoolean(KEY_LOGIN, false);
+                prefs.getBoolean(
+                        KEY_LOGIN,
+                        false
+                );
 
-        String savedUsername =
-                prefs.getString(KEY_USERNAME, "");
+        String username =
+                prefs.getString(
+                        KEY_USERNAME,
+                        ""
+                );
 
-        if (!isLoggedIn || savedUsername.trim().isEmpty()) {
+        username =
+                username == null
+                        ? ""
+                        : username.trim();
 
-            navigateAfterSplash(false, null);
+
+        // --------------------------------------------------------
+        // NOT LOGGED IN
+        // --------------------------------------------------------
+
+        if (!isLoggedIn || username.isEmpty()) {
+
+            navigateAfterSplash(
+                    false
+            );
 
             return;
         }
 
-        savedUsername = savedUsername.trim();
 
-        if (isOnline) {
+        // --------------------------------------------------------
+        // ALREADY LOGGED IN
+        // --------------------------------------------------------
 
-            verifyStudentStatusOnline(savedUsername);
-
-        } else {
+        if (!isOnline) {
 
             /*
-             * No internet:
-             * use controlled offline verification.
+             * IMPORTANT:
+             *
+             * User already logged in hai.
+             * Internet nahi hai to LOGOUT NAHI karna.
+             *
+             * Direct Dashboard.
              */
-            handleOfflineAccess();
+
+            showCustomToast(
+                    "Offline Mode\nLoading saved data...",
+                    false
+            );
+
+            navigateAfterSplash(
+                    true
+            );
+
+            return;
         }
+
+
+        // --------------------------------------------------------
+        // ONLINE -> LIVE FIREBASE STATUS CHECK
+        // --------------------------------------------------------
+
+        verifyStudentStatusOnline(
+                username
+        );
     }
 
-    /**
-     * Live Firebase account verification.
-     *
-     * Existing path preserved:
-     *
-     * Students
-     *   username
-     *      status
-     */
-    private void verifyStudentStatusOnline(final String username) {
+
+    // ============================================================
+    // FIREBASE LIVE STATUS CHECK
+    //
+    // Existing path preserved:
+    //
+    // Students
+    //     username
+    //         status
+    //
+    // ============================================================
+
+    private void verifyStudentStatusOnline(
+            final String username
+    ) {
+
+        if (navigationStarted) {
+            return;
+        }
 
         statusCheckFinished = false;
 
-        currentStatusRef =
-                FirebaseDatabase.getInstance()
+        statusRef =
+                FirebaseDatabase
+                        .getInstance()
                         .getReference("Students")
                         .child(username)
                         .child("status");
 
-        currentStatusListener =
+
+        statusListener =
                 new ValueEventListener() {
 
                     @Override
                     public void onDataChange(
-                            @NonNull DataSnapshot snapshot) {
+                            @NonNull DataSnapshot snapshot
+                    ) {
 
-                        if (statusCheckFinished) {
+                        if (statusCheckFinished
+                                || navigationStarted) {
                             return;
                         }
 
                         statusCheckFinished = true;
+
                         cancelStatusTimeout();
 
+
+                        // Account exists
                         if (snapshot.exists()) {
 
                             String currentStatus =
-                                    snapshot.getValue(String.class);
+                                    snapshot.getValue(
+                                            String.class
+                                    );
+
+
+                            // ------------------------------------------------
+                            // APPROVED
+                            // ------------------------------------------------
 
                             if (currentStatus != null
                                     && currentStatus.equalsIgnoreCase(
@@ -395,274 +488,168 @@ public class MainActivity extends Activity {
                             )) {
 
                                 /*
-                                 * Successful server verification.
-                                 * Store current timestamp for offline mode.
+                                 * Successful live verification.
                                  */
                                 saveLastServerVerification();
 
                                 navigateAfterSplash(
-                                        true,
-                                        null
+                                        true
                                 );
 
-                            } else {
-
-                                String statusText =
-                                        currentStatus == null
-                                                ? "Unknown"
-                                                : currentStatus;
-
-                                showToast(
-                                        "Your account is "
-                                                + statusText
-                                                + ". Please contact Admin.",
-                                        Toast.LENGTH_LONG
-                                );
-
-                                clearDataAndLogout();
+                                return;
                             }
+
+
+                            // ------------------------------------------------
+                            // NOT APPROVED
+                            // ------------------------------------------------
+
+                            String statusText =
+                                    currentStatus == null
+                                            ? "Unknown"
+                                            : currentStatus;
+
+                            showCustomToast(
+                                    "Your account is "
+                                            + statusText
+                                            + ". Please contact Admin.",
+                                    true
+                            );
+
+                            clearDataAndLogout();
 
                         } else {
 
-                            showToast(
-                                    "Account not found. Please contact Admin.",
-                                    Toast.LENGTH_LONG
+                            // ------------------------------------------------
+                            // ACCOUNT NOT FOUND
+                            // ------------------------------------------------
+
+                            showCustomToast(
+                                    "Account not found.\nPlease contact Admin.",
+                                    true
                             );
 
                             clearDataAndLogout();
                         }
                     }
 
+
                     @Override
                     public void onCancelled(
-                            @NonNull DatabaseError error) {
+                            @NonNull DatabaseError error
+                    ) {
 
-                        if (statusCheckFinished) {
+                        if (statusCheckFinished
+                                || navigationStarted) {
                             return;
                         }
 
                         statusCheckFinished = true;
+
                         cancelStatusTimeout();
 
-                        handleFirebaseStatusError(error);
+
+                        /*
+                         * IMPORTANT:
+                         *
+                         * Firebase error ka matlab zaroori nahi
+                         * ki account blocked hai.
+                         *
+                         * Network/server error mein user already
+                         * logged in hai, isliye Dashboard fallback.
+                         *
+                         * Explicit "Blocked/Pending..." status
+                         * onDataChange() mein already handle ho raha hai.
+                         */
+
+                        showCustomToast(
+                                "Server unavailable\nLoading saved data...",
+                                false
+                        );
+
+                        navigateAfterSplash(
+                                true
+                        );
                     }
                 };
 
-        currentStatusRef.addListenerForSingleValueEvent(
-                currentStatusListener
+
+        statusRef.addListenerForSingleValueEvent(
+                statusListener
         );
 
-        /*
-         * If Firebase request takes unusually long,
-         * don't keep the splash stuck forever.
-         */
-        timeoutHandler = new Handler(Looper.getMainLooper());
 
-        statusTimeoutRunnable = new Runnable() {
+        // --------------------------------------------------------
+        // Firebase timeout
+        // --------------------------------------------------------
 
-            @Override
-            public void run() {
+        statusTimeoutRunnable =
+                new Runnable() {
 
-                if (statusCheckFinished) {
-                    return;
-                }
+                    @Override
+                    public void run() {
 
-                statusCheckFinished = true;
+                        if (statusCheckFinished
+                                || navigationStarted) {
+                            return;
+                        }
 
-                /*
-                 * We don't need to manually remove the single-value
-                 * listener in normal use; timeout is only our UI fallback.
-                 */
-                handleStatusCheckTimeout();
-            }
-        };
+                        statusCheckFinished = true;
 
-        timeoutHandler.postDelayed(
+
+                        /*
+                         * Request timeout hua.
+                         *
+                         * User already logged in hai,
+                         * so don't logout.
+                         */
+                        showCustomToast(
+                                "Server response slow\nLoading saved data...",
+                                false
+                        );
+
+                        navigateAfterSplash(
+                                true
+                        );
+                    }
+                };
+
+
+        mainHandler.postDelayed(
                 statusTimeoutRunnable,
                 STATUS_CHECK_TIMEOUT_MS
         );
     }
 
-    private void handleFirebaseStatusError(DatabaseError error) {
 
-        int errorCode = error.getCode();
+    // ============================================================
+    // SAVE LAST SUCCESSFUL FIREBASE VERIFICATION
+    // ============================================================
 
-        /*
-         * Permission denied is an account/database permission problem,
-         * NOT simply "offline".
-         */
-        if (errorCode == DatabaseError.PERMISSION_DENIED) {
-
-            showToast(
-                    "Account verification failed. Please contact Admin.",
-                    Toast.LENGTH_LONG
-            );
-
-            clearDataAndLogout();
-
-            return;
-        }
-
-        /*
-         * Temporary/network related Firebase failure:
-         * try controlled offline access.
-         */
-        if (errorCode == DatabaseError.NETWORK_ERROR
-                || errorCode == DatabaseError.DISCONNECTED) {
-
-            handleOfflineAccess();
-            return;
-        }
-
-        /*
-         * Unknown temporary Firebase problem.
-         *
-         * If a valid offline verification exists, allow offline mode.
-         * Otherwise ask the user to login/verify online.
-         */
-        if (isOfflineVerificationValid()) {
-
-            showToast(
-                    "Server unavailable. Loading saved data...",
-                    Toast.LENGTH_SHORT
-            );
-
-            navigateAfterSplash(
-                    true,
-                    null
-            );
-
-        } else {
-
-            showToast(
-                    "Unable to verify account. Internet connection required.",
-                    Toast.LENGTH_LONG
-            );
-
-            forceSessionLogout();
-        }
-    }
-
-    private void handleStatusCheckTimeout() {
-
-        /*
-         * Firebase verification took too long.
-         *
-         * Do NOT blindly open Dashboard.
-         * Only allow it if a recent successful verification exists.
-         */
-        if (isOfflineVerificationValid()) {
-
-            showToast(
-                    "Server is taking too long. Loading saved data...",
-                    Toast.LENGTH_SHORT
-            );
-
-            navigateAfterSplash(
-                    true,
-                    null
-            );
-
-        } else {
-
-            showToast(
-                    "Account verification timed out. Internet connection required.",
-                    Toast.LENGTH_LONG
-            );
-
-            forceSessionLogout();
-        }
-    }
-
-    /**
-     * Controlled offline access.
-     *
-     * Old behaviour:
-     *     Offline -> Dashboard always
-     *
-     * New behaviour:
-     *     Offline + last Approved verification <= 3 days
-     *          -> Dashboard
-     *
-     *     Offline + no verification / older than 3 days
-     *          -> Login
-     */
-    private void handleOfflineAccess() {
-
-        if (isOfflineVerificationValid()) {
-
-            showToast(
-                    "You are Offline. Loading saved data...",
-                    Toast.LENGTH_SHORT
-            );
-
-            navigateAfterSplash(
-                    true,
-                    null
-            );
-
-        } else {
-
-            showToast(
-                    "Internet required. Please connect to verify your account.",
-                    Toast.LENGTH_LONG
-            );
-
-            forceSessionLogout();
-        }
-    }
-
-    /**
-     * Save last successful Firebase Approved verification.
-     */
     private void saveLastServerVerification() {
 
-        prefs.edit()
-                .putLong(
-                        KEY_LAST_SERVER_VERIFICATION,
-                        System.currentTimeMillis()
-                )
-                .apply();
+        try {
+
+            prefs.edit()
+                    .putLong(
+                            KEY_LAST_SERVER_VERIFICATION,
+                            System.currentTimeMillis()
+                    )
+                    .apply();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
     }
 
-    /**
-     * Check if the cached server verification is still usable.
-     */
-    private boolean isOfflineVerificationValid() {
 
-        long lastVerified =
-                prefs.getLong(
-                        KEY_LAST_SERVER_VERIFICATION,
-                        0L
-                );
+    // ============================================================
+    // SPLASH -> NAVIGATION
+    // ============================================================
 
-        if (lastVerified <= 0L) {
-            return false;
-        }
-
-        long currentTime =
-                System.currentTimeMillis();
-
-        long elapsed =
-                currentTime - lastVerified;
-
-        /*
-         * Clock moved backwards:
-         * don't unnecessarily reject session.
-         */
-        if (elapsed < 0L) {
-            return true;
-        }
-
-        return elapsed <= OFFLINE_GRACE_PERIOD_MS;
-    }
-
-    /**
-     * Navigation is always held until minimum splash duration completes.
-     */
     private void navigateAfterSplash(
-            boolean dashboard,
-            String ignored
+            final boolean openDashboard
     ) {
 
         if (navigationStarted) {
@@ -674,75 +661,97 @@ public class MainActivity extends Activity {
                         - splashStartTime;
 
         long remaining =
-                MIN_SPLASH_DURATION_MS - elapsed;
+                MIN_SPLASH_DURATION_MS
+                        - elapsed;
 
-        if (remaining <= 0L) {
 
-            doNavigation(dashboard);
+        // --------------------------------------------------------
+        // Splash time already completed
+        // --------------------------------------------------------
+
+        if (remaining <= 0) {
+
+            doNavigation(
+                    openDashboard
+            );
 
             return;
         }
 
-        if (splashHandler == null) {
-            splashHandler =
-                    new Handler(Looper.getMainLooper());
-        }
 
-        if (splashRunnable != null) {
-            splashHandler.removeCallbacks(
-                    splashRunnable
+        // --------------------------------------------------------
+        // Wait remaining splash time
+        // --------------------------------------------------------
+
+        if (navigationRunnable != null) {
+
+            mainHandler.removeCallbacks(
+                    navigationRunnable
             );
         }
 
-        final boolean openDashboard = dashboard;
 
-        splashRunnable = new Runnable() {
+        navigationRunnable =
+                new Runnable() {
 
-            @Override
-            public void run() {
+                    @Override
+                    public void run() {
 
-                if (navigationStarted) {
-                    return;
-                }
+                        if (navigationStarted) {
+                            return;
+                        }
 
-                doNavigation(openDashboard);
-            }
-        };
+                        doNavigation(
+                                openDashboard
+                        );
+                    }
+                };
 
-        splashHandler.postDelayed(
-                splashRunnable,
+
+        mainHandler.postDelayed(
+                navigationRunnable,
                 remaining
         );
     }
 
-    private void doNavigation(boolean dashboard) {
+
+    // ============================================================
+    // ACTUAL NAVIGATION
+    // ============================================================
+
+    private void doNavigation(
+            boolean openDashboard
+    ) {
 
         if (navigationStarted) {
             return;
         }
 
-        if (isFinishing()
-                || (Build.VERSION.SDK_INT >= 17
-                && isDestroyed())) {
+        if (isActivityDead()) {
             return;
         }
 
         navigationStarted = true;
 
-        if (splashHandler != null
-                && splashRunnable != null) {
+        cancelNavigationCallback();
 
-            splashHandler.removeCallbacks(
-                    splashRunnable
-            );
-        }
+        cancelStatusTimeout();
 
-        if (dashboard) {
+
+        if (openDashboard) {
+
             goToDashboard();
+
         } else {
+
             goToLogin();
         }
     }
+
+
+    // ============================================================
+    // DASHBOARD
+    // ============================================================
 
     private void goToDashboard() {
 
@@ -753,8 +762,14 @@ public class MainActivity extends Activity {
                 );
 
         startActivity(intent);
+
         finish();
     }
+
+
+    // ============================================================
+    // LOGIN
+    // ============================================================
 
     private void goToLogin() {
 
@@ -765,31 +780,26 @@ public class MainActivity extends Activity {
                 );
 
         startActivity(intent);
+
         finish();
     }
 
-    /**
-     * Used when server explicitly rejects/deletes the account.
-     *
-     * Existing app behaviour preserved:
-     * clear the complete preference file.
-     */
+
+    // ============================================================
+    // FULL LOGOUT
+    //
+    // Existing global AppFeatures cache is preserved.
+    // ============================================================
+
     private void clearDataAndLogout() {
 
         navigationStarted = true;
 
         cancelAllPendingCallbacks();
 
-        SharedPreferences.Editor editor =
-                prefs.edit();
-
-        editor.clear();
 
         /*
-         * Keep AppFeatures cache, so next startup does not necessarily
-         * need fresh feature data just to open the app.
-         *
-         * We are intentionally restoring the two existing global cache keys.
+         * Save global AppFeatures BEFORE clearing preferences.
          */
         String cachedIp =
                 prefs.getString(
@@ -803,12 +813,21 @@ public class MainActivity extends Activity {
                         null
                 );
 
+
+        SharedPreferences.Editor editor =
+                prefs.edit();
+
         /*
-         * Because clear() has been called, old values were captured above.
+         * Old session + old account data remove.
          */
         editor.clear();
 
+
+        /*
+         * Restore global AppFeatures cache.
+         */
         if (cachedIp != null) {
+
             editor.putString(
                     KEY_FEATURE_IP,
                     cachedIp
@@ -816,40 +835,21 @@ public class MainActivity extends Activity {
         }
 
         if (cachedQr != null) {
+
             editor.putString(
                     KEY_FEATURE_QR,
                     cachedQr
             );
         }
 
-        editor.apply();
 
-        goToLoginWithClearTask();
-    }
+        editor.commit();
 
-    /**
-     * Offline verification expired.
-     *
-     * Don't destroy global AppFeatures.
-     * Only remove login/session information.
-     */
-    private void forceSessionLogout() {
 
-        navigationStarted = true;
-
-        cancelAllPendingCallbacks();
-
-        prefs.edit()
-                .remove(KEY_LOGIN)
-                .remove(KEY_USERNAME)
-                .remove(KEY_LAST_SERVER_VERIFICATION)
-                .apply();
-
-        goToLoginWithClearTask();
-    }
-
-    private void goToLoginWithClearTask() {
-
+        /*
+         * Complete Activity stack clear.
+         * Login will start as fresh task.
+         */
         Intent intent =
                 new Intent(
                         MainActivity.this,
@@ -859,66 +859,240 @@ public class MainActivity extends Activity {
         intent.setFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK
                         | Intent.FLAG_ACTIVITY_CLEAR_TASK
-        );
+                );
 
         startActivity(intent);
+
         finish();
     }
 
+
+    // ============================================================
+    // CUSTOM TOAST
+    // ============================================================
+
+    private void showCustomToast(
+            String message,
+            boolean isError
+    ) {
+
+        try {
+
+            LinearLayout layout =
+                    new LinearLayout(this);
+
+            layout.setOrientation(
+                    LinearLayout.VERTICAL
+            );
+
+            layout.setGravity(
+                    Gravity.CENTER
+            );
+
+            layout.setPadding(
+                    28,
+                    18,
+                    28,
+                    18
+            );
+
+
+            GradientDrawable background =
+                    new GradientDrawable();
+
+            background.setCornerRadius(
+                    45f
+            );
+
+
+            if (isError) {
+
+                background.setColor(
+                        Color.rgb(
+                                185,
+                                45,
+                                45
+                        )
+                );
+
+            } else {
+
+                background.setColor(
+                        Color.rgb(
+                                35,
+                                35,
+                                35
+                        )
+                );
+            }
+
+
+            layout.setBackground(
+                    background
+            );
+
+
+            TextView textView =
+                    new TextView(this);
+
+            textView.setText(
+                    message
+            );
+
+            textView.setTextColor(
+                    Color.WHITE
+            );
+
+            textView.setTextSize(
+                    14
+            );
+
+            textView.setGravity(
+                    Gravity.CENTER
+            );
+
+            textView.setMaxLines(
+                    3
+            );
+
+
+            layout.addView(
+                    textView,
+                    new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+            );
+
+
+            Toast toast =
+                    new Toast(
+                            getApplicationContext()
+                    );
+
+            toast.setDuration(
+                    isError
+                            ? Toast.LENGTH_LONG
+                            : Toast.LENGTH_SHORT
+            );
+
+            toast.setGravity(
+                    Gravity.BOTTOM
+                            | Gravity.CENTER_HORIZONTAL,
+                    0,
+                    140
+            );
+
+            toast.setView(
+                    layout
+            );
+
+            toast.show();
+
+        } catch (Exception e) {
+
+            /*
+             * Fallback to normal Toast so that a UI
+             * exception never crashes startup.
+             */
+            Toast.makeText(
+                    this,
+                    message,
+                    isError
+                            ? Toast.LENGTH_LONG
+                            : Toast.LENGTH_SHORT
+            ).show();
+        }
+    }
+
+
+    // ============================================================
+    // CALLBACK CLEANUP
+    // ============================================================
+
+    private void cancelNavigationCallback() {
+
+        if (mainHandler != null
+                && navigationRunnable != null) {
+
+            mainHandler.removeCallbacks(
+                    navigationRunnable
+            );
+
+            navigationRunnable = null;
+        }
+    }
+
+
     private void cancelStatusTimeout() {
 
-        if (timeoutHandler != null
+        if (mainHandler != null
                 && statusTimeoutRunnable != null) {
 
-            timeoutHandler.removeCallbacks(
+            mainHandler.removeCallbacks(
                     statusTimeoutRunnable
             );
-        }
 
-        timeoutHandler = null;
-        statusTimeoutRunnable = null;
+            statusTimeoutRunnable = null;
+        }
     }
+
+
+    private void cancelFirebaseListener() {
+
+        if (statusRef != null
+                && statusListener != null) {
+
+            try {
+
+                statusRef.removeEventListener(
+                        statusListener
+                );
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+            }
+
+            statusRef = null;
+
+            statusListener = null;
+        }
+    }
+
 
     private void cancelAllPendingCallbacks() {
 
-        if (splashHandler != null
-                && splashRunnable != null) {
-
-            splashHandler.removeCallbacks(
-                    splashRunnable
-            );
-        }
+        cancelNavigationCallback();
 
         cancelStatusTimeout();
 
-        if (currentStatusRef != null
-                && currentStatusListener != null) {
-
-            try {
-                currentStatusRef.removeEventListener(
-                        currentStatusListener
-                );
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+        cancelFirebaseListener();
     }
 
-    private void showToast(
-            String message,
-            int duration
-    ) {
+
+    // ============================================================
+    // ACTIVITY STATE
+    // ============================================================
+
+    private boolean isActivityDead() {
 
         if (isFinishing()) {
-            return;
+            return true;
         }
 
-        Toast.makeText(
-                MainActivity.this,
-                message,
-                duration
-        ).show();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+
+            return isDestroyed();
+        }
+
+        return false;
     }
+
+
+    // ============================================================
+    // ON DESTROY
+    // ============================================================
 
     @Override
     protected void onDestroy() {
