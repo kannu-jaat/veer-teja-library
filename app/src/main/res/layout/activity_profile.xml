@@ -29,6 +29,7 @@
     </RelativeLayout>
 
     <!-- Profile Card (Dark Blue) -->
+    <!-- 🔥 NEW: Added transitionName for Shared Element Animation 🔥 -->
     <RelativeLayout
         android:id="@+id/profileHeader"
         android:layout_width="match_parent"
@@ -36,7 +37,8 @@
         android:layout_below="@id/topBar"
         android:layout_margin="20dp"
         android:background="@drawable/rounded_dark_card"
-        android:padding="20dp">
+        android:padding="20dp"
+        android:transitionName="profile_card_anim">
 
         <!-- Photo & Camera Icon -->
         <RelativeLayout
@@ -90,7 +92,7 @@
                 android:text="username_123"
                 android:textColor="#A5B4FC"
                 android:textSize="14sp" />
-            
+
             <TextView
                 android:id="@+id/tvStatusBadge"
                 android:layout_width="wrap_content"
@@ -103,7 +105,7 @@
                 android:textColor="#10B981"
                 android:textSize="12sp"
                 android:textStyle="bold" />
-            
+
             <TextView
                 android:id="@+id/tvMemberSince"
                 android:layout_width="wrap_content"
