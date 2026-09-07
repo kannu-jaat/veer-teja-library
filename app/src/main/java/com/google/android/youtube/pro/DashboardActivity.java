@@ -234,19 +234,21 @@ public class DashboardActivity extends FragmentActivity {
         
         Intent intent = new Intent(DashboardActivity.this, ProfileActivity.class);
         
-        // Android ko batate hain ki top card ko udakar agli screen me le jana hai
-        if (dashboardTopCard != null) {
+        // Sirf choti photo ko target kar rahe hain
+        View profileAvatar = findViewById(R.id.cvHeaderAvatar); 
+        
+        if (profileAvatar != null) {
             ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(
                     DashboardActivity.this, 
-                    dashboardTopCard, 
-                    "profile_card_anim"
+                    profileAvatar, 
+                    "profile_photo_anim"
             );
             startActivity(intent, options.toBundle());
         } else {
-            // Backup (Agar layout fail ho toh normal khulega)
             startActivity(intent);
         }
     }
+
 
     // 🔥 Premium Custom Toast Programmatically Built
     private void showCustomToast(String message, boolean isSuccess) {
