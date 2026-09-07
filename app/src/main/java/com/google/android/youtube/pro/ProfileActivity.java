@@ -46,6 +46,9 @@ public class ProfileActivity extends AppCompatActivity {
     private TextView tvFullNameHeader, tvUsernameHeader, tvStatusBadge, tvMemberSince;
     private Button btnLogout, btnEditProfile;
     
+    // 🔥 Naye Views Rows ke liye
+    private View rowName, rowPhone, rowDob, rowAddress;
+
     private SharedPreferences prefs;
     private String savedUsername;
 
@@ -74,8 +77,8 @@ public class ProfileActivity extends AppCompatActivity {
         savedUsername = prefs.getString("username", "");
 
         initViews();
-        loadCachedData();
-        fetchLatestDataFromFirebase();
+        loadCachedData(); // 🔥 Pehle Cache Load Hoga
+        fetchLatestDataFromFirebase(); // 🔥 Fir Background me Firebase se Update Hoga
         setupClickListeners();
     }
 
@@ -89,6 +92,12 @@ public class ProfileActivity extends AppCompatActivity {
         tvMemberSince = findViewById(R.id.tvMemberSince);
         btnLogout = findViewById(R.id.btnLogout);
         btnEditProfile = findViewById(R.id.btnEditProfile);
+
+        // Rows initialization
+        rowName = findViewById(R.id.rowName);
+        rowPhone = findViewById(R.id.rowPhone);
+        rowDob = findViewById(R.id.rowDob);
+        rowAddress = findViewById(R.id.rowAddress);
     }
 
     private void setupClickListeners() {
@@ -104,78 +113,134 @@ public class ProfileActivity extends AppCompatActivity {
         btnLogout.setOnClickListener(v -> logoutUser());
     }
 
+    // 🔥 HELPER METHOD: Info Rows me data aur icon set karne ke liye
+    private void setRowData(View row, String label, String value, int iconRes) {
+        if (row != null) {
+            ImageView ivIcon = row.findViewById(R.id.rowIcon);
+            TextView tvLabel = row.findViewById(R.id.rowLabel);
+            TextView tvValue = row.findViewById(R.id.rowValue);
+
+            if (ivIcon != null) ivIcon.setImageResource(iconRes);
+            if (tvLabel != null) tvLabel.setText(label);
+            if (tvValue != null) tvValue.setText((value != null && !value.isEmpty()) ? value : "Not provided");
+        }
+    }
+
+    // 🔥 OFFLINE CACHE LOAD ENGINE
     private void loadCachedData() {
         tvUsernameHeader.setText(savedUsername);
-        tvFullNameHeader.setText(prefs.getString("cachedName", "Student"));
         
+        String cachedName = prefs.getString("cachedName", "Student");
+        tvFullNameHeader.setText(cachedName);
+        
+        String cachedStatus = prefs.getString("cachedStatus", "Loading...");
+        tvStatusBadge.setText(cachedStatus);
+        if(cachedStatus.equalsIgnoreCase("Approved")) tvStatusBadge.setTextColor(Color.parseColor("#10B981"));
+        else tvStatusBadge.setTextColor(Color.parseColor("#EF4444"));
+
+        tvMemberSince.setText("Member Since: " + prefs.getString("cachedMemberSince", "--"));
+
+        // Set Bottom Rows from Cache
+        setRowData(rowName, "Full Name", cachedName, android.R.drawable.ic_menu_myplaces);
+        setRowData(rowPhone, "Phone Number", prefs.getString("cachedPhone", "--"), android.R.drawable.ic_menu_call);
+        setRowData(rowDob, "Date of Birth", prefs.getString("cachedDob", "--"), android.R.drawable.ic_menu_today);
+        setRowData(rowAddress, "Address", prefs.getString("cachedAddress", "--"), android.R.drawable.ic_menu_mapmode);
+
         File imgFile = new File(getFilesDir(), "profile_avatar.jpg");
         if (imgFile.exists()) {
             ivProfileImage.setImageBitmap(BitmapFactory.decodeFile(imgFile.getAbsolutePath()));
         }
     }
 
+    // 🔥 FIREBASE FETCH & CACHE UPDATE ENGINE
     private void fetchLatestDataFromFirebase() {
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername);
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
+                    SharedPreferences.Editor editor = prefs.edit();
+
                     String fullName = snapshot.child("fullName").getValue(String.class);
                     String status = snapshot.child("status").getValue(String.class);
-                    String memberSince = snapshot.child("memberSince").getValue(String.class);
+                    String memberSince = snapshot.child("registrationTime").getValue(String.class);
+                    String phone = snapshot.child("mobile").getValue(String.class); // Firebase key: phone
+                    String dob = snapshot.child("dob").getValue(String.class);     // Firebase key: dob
+                    String address = snapshot.child("address").getValue(String.class); // Firebase key: address
 
-                    if (fullName != null) tvFullNameHeader.setText(fullName);
+                    if (fullName != null) {
+                        tvFullNameHeader.setText(fullName);
+                        editor.putString("cachedName", fullName);
+                        setRowData(rowName, "Full Name", fullName, android.R.drawable.ic_menu_myplaces);
+                    }
+                    
                     if (status != null) {
                         tvStatusBadge.setText(status);
                         if(status.equalsIgnoreCase("Approved")) tvStatusBadge.setTextColor(Color.parseColor("#10B981"));
                         else tvStatusBadge.setTextColor(Color.parseColor("#EF4444"));
+                        editor.putString("cachedStatus", status);
                     }
-                    if (memberSince != null) tvMemberSince.setText("Member Since: " + memberSince);
+                    
+                    if (memberSince != null) {
+                        tvMemberSince.setText("Member Since: " + memberSince);
+                        editor.putString("cachedMemberSince", memberSince);
+                    }
+
+                    if (phone != null) {
+                        editor.putString("cachedPhone", phone);
+                        setRowData(rowPhone, "Phone Number", phone, android.R.drawable.ic_menu_call);
+                    }
+
+                    if (dob != null) {
+                        editor.putString("cachedDob", dob);
+                        setRowData(rowDob, "Date of Birth", dob, android.R.drawable.ic_menu_today);
+                    }
+
+                    if (address != null) {
+                        editor.putString("cachedAddress", address);
+                        setRowData(rowAddress, "Address", address, android.R.drawable.ic_menu_mapmode);
+                    }
+
+                    // Save all fresh data to Cache permanently
+                    editor.apply(); 
                 }
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
-    // 🔥 CLOUDINARY UPLOAD ENGINE (Using AppConfig dynamically)
+    // 🔥 CLOUDINARY UPLOAD ENGINE 
     private void uploadImageToCloudinary(Bitmap bitmap) {
         showCustomToast("Uploading new photo...", true);
 
         new Thread(() -> {
             try {
-                // 1. Convert Bitmap to Base64 String
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                 bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream);
                 byte[] byteArray = byteArrayOutputStream.toByteArray();
                 String base64Image = "data:image/jpeg;base64," + Base64.encodeToString(byteArray, Base64.DEFAULT);
 
-                // 🔥 Use dynamic values from AppConfig
                 String cloudinaryUrl = "https://api.cloudinary.com/v1_1/" + AppConfig.CLOUDINARY_CLOUD_NAME + "/image/upload";
                 String postData = "upload_preset=" + AppConfig.CLOUDINARY_UPLOAD_PRESET + "&file=" + java.net.URLEncoder.encode(base64Image, "UTF-8");
 
-                // 2. Prepare HTTP POST request
                 URL url = new URL(cloudinaryUrl);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
-                // 3. Send Data
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
                 os.flush();
                 os.close();
 
-                // 4. Read Response
                 java.util.Scanner scanner = new java.util.Scanner(conn.getInputStream());
                 String response = scanner.useDelimiter("\\A").hasNext() ? scanner.next() : "";
                 scanner.close();
 
-                // 5. Parse JSON to get Secure URL
                 JSONObject jsonObject = new JSONObject(response);
                 String secureUrl = jsonObject.getString("secure_url");
 
-                // 6. Update Firebase & Cache on Main Thread
                 new Handler(Looper.getMainLooper()).post(() -> updateFirebasePhotoUrl(secureUrl));
 
             } catch (Exception e) {
@@ -189,17 +254,14 @@ public class ProfileActivity extends AppCompatActivity {
         ref.child("photoUrl").setValue(newUrl).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 showCustomToast("Profile Photo Updated!", true);
-                prefs.edit().putString("cachedImageUrl", newUrl).apply(); // Update cache pointer
+                prefs.edit().putString("cachedImageUrl", newUrl).apply(); 
             }
         });
     }
 
     // 🔥 LOGOUT ENGINE
     private void logoutUser() {
-        // Clear all Cache
         prefs.edit().clear().apply();
-
-        // Redirect to Login & Destroy all previous screens
         Intent intent = new Intent(ProfileActivity.this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
@@ -227,7 +289,6 @@ public class ProfileActivity extends AppCompatActivity {
         toast.show();
     }
 
-    // Custom exit animation on back button
     @Override
     public void onBackPressed() {
         super.onBackPressed();
