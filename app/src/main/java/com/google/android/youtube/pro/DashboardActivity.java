@@ -19,6 +19,7 @@ import android.os.Looper;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -26,6 +27,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
+import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
@@ -54,6 +56,9 @@ public class DashboardActivity extends FragmentActivity {
     private TextView tvTodayStatus, tvStatusTitle, tvAttDate, tvAttTime, tvDaysPresent;
     private ImageView ivHeaderAvatar, ivStatusAvatar, btnNotifications;
 
+    // 🔥 Shared Element Container
+    private RelativeLayout dashboardTopCard;
+
     // All Grid Buttons
     private LinearLayout btnMarkAttendGrid, btnMyAttendanceGrid, btnMySeatGrid, btnFeesGrid;
     private LinearLayout btnNoticesGrid, btnRulesGrid, btnProfileGrid, btnSupportGrid;
@@ -81,7 +86,7 @@ public class DashboardActivity extends FragmentActivity {
     private static final int STATE_MORE = 3;
     private static final int STATE_RULES = 4;
     private int currentState = STATE_DASHBOARD;
-    
+
     // Scanner block flag
     private boolean isAttendanceMarkedToday = false; 
 
@@ -123,6 +128,9 @@ public class DashboardActivity extends FragmentActivity {
     }
 
     private void initializeViews() {
+        // 🔥 Link the new Top Card
+        dashboardTopCard = findViewById(R.id.dashboardTopCard);
+
         tvInternetWarning = findViewById(R.id.tvInternetWarning);
         tvGreeting = findViewById(R.id.tvGreeting);
         tvDashName = findViewById(R.id.tvDashName);
@@ -203,7 +211,7 @@ public class DashboardActivity extends FragmentActivity {
         btnMarkAttendGrid.setOnClickListener(v -> checkPermissionsAndScan());
         btnCenterCameraFab.setOnClickListener(v -> checkPermissionsAndScan());
 
-        // 🔥 Profile Clicks (Naya code sirf yahan add kiya hai)
+        // 🔥 Profile Clicks
         btnProfileGrid.setOnClickListener(v -> openProfileWithAnimation());
         if (ivHeaderAvatar != null) {
             ivHeaderAvatar.setOnClickListener(v -> openProfileWithAnimation());
@@ -216,17 +224,28 @@ public class DashboardActivity extends FragmentActivity {
 
         btnMySeatGrid.setOnClickListener(comingSoonListener);
         btnNoticesGrid.setOnClickListener(comingSoonListener);
-        // btnProfileGrid removed from comingSoonListener
         btnNotifications.setOnClickListener(comingSoonListener);
         cvLatestNotice.setOnClickListener(comingSoonListener);
     }
 
-    // 🔥 Profile kholne wala method
+    // 🔥 MAGIC HAPPENS HERE: Shared Element Transition
     private void openProfileWithAnimation() {
         if (isSpamClick()) return;
+        
         Intent intent = new Intent(DashboardActivity.this, ProfileActivity.class);
-        startActivity(intent);
-        overridePendingTransition(R.anim.slide_in_bottom_right, 0);
+        
+        // Android ko batate hain ki top card ko udakar agli screen me le jana hai
+        if (dashboardTopCard != null) {
+            ActivityOptionsCompat options = ActivityOptionsCompat.makeSceneTransitionAnimation(
+                    DashboardActivity.this, 
+                    dashboardTopCard, 
+                    "profile_card_anim"
+            );
+            startActivity(intent, options.toBundle());
+        } else {
+            // Backup (Agar layout fail ho toh normal khulega)
+            startActivity(intent);
+        }
     }
 
     // 🔥 Premium Custom Toast Programmatically Built
@@ -238,7 +257,7 @@ public class DashboardActivity extends FragmentActivity {
         layout.setOrientation(LinearLayout.HORIZONTAL);
         layout.setPadding(40, 24, 40, 24);
         layout.setGravity(android.view.Gravity.CENTER_VERTICAL);
-        
+
         android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
         gd.setColor(isSuccess ? Color.parseColor("#065F46") : Color.parseColor("#991B1B")); 
         gd.setCornerRadius(50f);
@@ -292,19 +311,17 @@ public class DashboardActivity extends FragmentActivity {
     // 🔥 UPDATED: Switch IP Auth based on Cache
     private void verifyQrAndMarkAttendance(String scannedData) {
         showCustomToast("Verifying securely...", true);
-        
-        // Cache se pucho IP auth on hai ya off (default "no" rakha hai)
+
         boolean isIpAuthRequired = "yes".equalsIgnoreCase(prefs.getString("feature_ip", "no"));
 
         if (isIpAuthRequired) {
-            // IP Authentication ON hai, API se IP mangwao
             new Thread(() -> {
                 try {
                     URL url = new URL("https://api.ipify.org");
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                     connection.setRequestMethod("GET");
                     java.util.Scanner scanner = new java.util.Scanner(connection.getInputStream());
-                    
+
                     String myPublicIP = scanner.useDelimiter("\\A").hasNext() ? scanner.next().trim() : "";
                     scanner.close();
 
@@ -318,7 +335,6 @@ public class DashboardActivity extends FragmentActivity {
                 }
             }).start();
         } else {
-            // IP Authentication OFF hai, seedha null bhej do bina API call kiye
             verifyQrWithIP(scannedData, null); 
         }
     }
@@ -347,7 +363,7 @@ public class DashboardActivity extends FragmentActivity {
                         isAdmin = true;
                     }
                 }
-                
+
                 final boolean finalIsAdmin = isAdmin;
 
                 DatabaseReference qrRef = FirebaseDatabase.getInstance().getReference("QRConfig/current");
@@ -363,9 +379,8 @@ public class DashboardActivity extends FragmentActivity {
                                     showCustomToast("Admin Bypass Active 🚀", true);
                                     markAttendanceInDatabase();
                                 } else {
-                                    // 🔥 NAYA LOGIC: Agar studentIP null hai, matlab IP Auth OFF hai
                                     if (studentIP == null) {
-                                        markAttendanceInDatabase(); // Direct Entry!
+                                        markAttendanceInDatabase();
                                     } else {
                                         String cleanDbIP = (dbAllowedIP != null) ? dbAllowedIP.trim() : "";
                                         if (cleanDbIP.isEmpty() || studentIP.equals(cleanDbIP)) {
