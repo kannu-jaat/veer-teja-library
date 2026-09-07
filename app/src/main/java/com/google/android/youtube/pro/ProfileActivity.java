@@ -100,7 +100,8 @@ public class ProfileActivity extends AppCompatActivity {
 
         // 🔥 SLIDE-UP & FADE-IN ANIMATION 🔥
         View bottomInfoSection = findViewById(R.id.bottomInfoSection);
-        LinearLayout headerTextData = findViewById(R.id.profileHeader).findViewById(R.id.tvFullNameHeader).getParent(); // Header ke text ka container
+        View headerTextData = (View) findViewById(R.id.tvFullNameHeader).getParent();
+ // Header ke text ka container
 
         // 1. Initial State (Chhupa do aur thoda neeche kar do)
         bottomInfoSection.setAlpha(0f);
