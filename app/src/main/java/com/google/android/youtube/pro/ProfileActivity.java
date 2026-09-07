@@ -45,7 +45,7 @@ public class ProfileActivity extends AppCompatActivity {
     private ImageView btnBack, ivProfileImage, btnUpdatePhoto;
     private TextView tvFullNameHeader, tvUsernameHeader, tvStatusBadge, tvMemberSince;
     private Button btnLogout, btnEditProfile;
-    
+
     // 🔥 Naye Views Rows ke liye
     private View rowName, rowPhone, rowDob, rowAddress;
 
@@ -82,7 +82,7 @@ public class ProfileActivity extends AppCompatActivity {
         setupClickListeners();
     }
 
-    private void initViews() {
+        private void initViews() {
         btnBack = findViewById(R.id.btnBack);
         ivProfileImage = findViewById(R.id.ivProfileImage);
         btnUpdatePhoto = findViewById(R.id.btnUpdatePhoto);
@@ -93,12 +93,38 @@ public class ProfileActivity extends AppCompatActivity {
         btnLogout = findViewById(R.id.btnLogout);
         btnEditProfile = findViewById(R.id.btnEditProfile);
 
-        // Rows initialization
         rowName = findViewById(R.id.rowName);
         rowPhone = findViewById(R.id.rowPhone);
         rowDob = findViewById(R.id.rowDob);
         rowAddress = findViewById(R.id.rowAddress);
+
+        // 🔥 SLIDE-UP & FADE-IN ANIMATION 🔥
+        View bottomInfoSection = findViewById(R.id.bottomInfoSection);
+        LinearLayout headerTextData = findViewById(R.id.profileHeader).findViewById(R.id.tvFullNameHeader).getParent(); // Header ke text ka container
+
+        // 1. Initial State (Chhupa do aur thoda neeche kar do)
+        bottomInfoSection.setAlpha(0f);
+        bottomInfoSection.setTranslationY(150f); 
+        
+        headerTextData.setAlpha(0f);
+        headerTextData.setTranslationX(-50f); // Text halka sa left se aayega
+
+        // 2. Animate State (Fast slide up aur fade in)
+        bottomInfoSection.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(400) // 0.4 seconds (Fast & Smooth)
+                .setStartDelay(200) // Photo udne ke beech me start hoga
+                .start();
+
+        headerTextData.animate()
+                .alpha(1f)
+                .translationX(0f)
+                .setDuration(400)
+                .setStartDelay(150)
+                .start();
     }
+
 
     private void setupClickListeners() {
         btnBack.setOnClickListener(v -> onBackPressed());
@@ -129,10 +155,10 @@ public class ProfileActivity extends AppCompatActivity {
     // 🔥 OFFLINE CACHE LOAD ENGINE
     private void loadCachedData() {
         tvUsernameHeader.setText(savedUsername);
-        
+
         String cachedName = prefs.getString("cachedName", "Student");
         tvFullNameHeader.setText(cachedName);
-        
+
         String cachedStatus = prefs.getString("cachedStatus", "Loading...");
         tvStatusBadge.setText(cachedStatus);
         if(cachedStatus.equalsIgnoreCase("Approved")) tvStatusBadge.setTextColor(Color.parseColor("#10B981"));
@@ -173,14 +199,14 @@ public class ProfileActivity extends AppCompatActivity {
                         editor.putString("cachedName", fullName);
                         setRowData(rowName, "Full Name", fullName, android.R.drawable.ic_menu_myplaces);
                     }
-                    
+
                     if (status != null) {
                         tvStatusBadge.setText(status);
                         if(status.equalsIgnoreCase("Approved")) tvStatusBadge.setTextColor(Color.parseColor("#10B981"));
                         else tvStatusBadge.setTextColor(Color.parseColor("#EF4444"));
                         editor.putString("cachedStatus", status);
                     }
-                    
+
                     if (memberSince != null) {
                         tvMemberSince.setText("Member Since: " + memberSince);
                         editor.putString("cachedMemberSince", memberSince);
