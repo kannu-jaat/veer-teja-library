@@ -29,9 +29,12 @@
         android:orientation="vertical">
 
         <!-- 1. FIXED TOP HALF (ALWAYS VISIBLE, NO SCROLL) -->
+        <!-- 🔥 NEW: Added ID and transitionName for Shared Element Animation 🔥 -->
         <RelativeLayout
+            android:id="@+id/dashboardTopCard"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:transitionName="profile_card_anim">
 
             <!-- Banner -->
             <RelativeLayout
@@ -53,7 +56,7 @@
                     android:paddingLeft="20dp"
                     android:paddingRight="20dp"
                     android:paddingTop="15dp">
-                    
+
                     <ImageView
                         android:layout_width="26dp"
                         android:layout_height="26dp"
@@ -154,14 +157,14 @@
                 app:cardBackgroundColor="#1E1B4B"
                 app:cardCornerRadius="14dp"
                 app:cardElevation="6dp">
-                
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:padding="12dp"
                     android:baselineAligned="false">
-                    
+
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1.5" android:orientation="horizontal" android:gravity="center_vertical">
                         <ImageView android:layout_width="30dp" android:layout_height="30dp" android:src="@android:drawable/btn_star_big_on" android:tint="#FBBF24" android:layout_marginRight="8dp"/>
                         <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical">
@@ -203,7 +206,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:fillViewport="true">
-                    
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -227,7 +230,7 @@
                             android:columnCount="4"
                             android:paddingLeft="14dp"
                             android:paddingRight="14dp">
-                            
+
                             <LinearLayout android:id="@+id/btnMarkAttendGrid" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical" android:gravity="center" android:layout_margin="4dp" android:padding="8dp" android:background="@drawable/bg_badge_green">
                                 <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_camera" android:tint="#10B981"/>
                                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mark\nAttend" android:textColor="#0F172A" android:textSize="10sp" android:gravity="center" android:layout_marginTop="4dp"/>
@@ -278,11 +281,11 @@
                             app:cardBackgroundColor="#F0FDF4"
                             app:cardCornerRadius="14dp"
                             app:cardElevation="0dp">
-                            
+
                             <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:padding="16dp">
                                 <TextView android:id="@+id/tvStatusTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Today's Attendance" android:textColor="#0F172A" android:textSize="12sp"/>
                                 <TextView android:id="@+id/tvTodayStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_below="@id/tvStatusTitle" text="Checking..." android:textColor="#F59E0B" android:textSize="20sp" android:textStyle="bold" android:layout_marginTop="2dp"/>
-                                
+
                                 <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_below="@id/tvTodayStatus" android:layout_marginTop="6dp" android:orientation="horizontal">
                                     <ImageView android:layout_width="14dp" android:layout_height="14dp" android:src="@android:drawable/ic_menu_today" android:tint="#64748B" android:layout_marginRight="4dp"/>
                                     <TextView android:id="@+id/tvAttDate" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-- --- ----" android:textColor="#64748B" android:textSize="11sp"/>
@@ -317,7 +320,7 @@
                             app:cardBackgroundColor="#FFF7ED"
                             app:cardCornerRadius="14dp"
                             app:cardElevation="0dp">
-                            
+
                             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical">
                                 <ImageView android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/ic_popup_reminder" android:tint="#F97316"/>
                                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginLeft="16dp">
@@ -355,7 +358,7 @@
             android:background="#1E1B4B"
             android:orientation="horizontal"
             android:paddingTop="6dp">
-            
+
             <LinearLayout android:id="@+id/btnDashboardNav" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal" android:clickable="false">
                 <ImageView android:id="@+id/ivDashboardIcon" android:layout_width="20dp" android:layout_height="20dp" android:src="@android:drawable/ic_menu_view" android:tint="#FBBF24"/>
                 <TextView android:id="@+id/tvDashboardText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Dashboard" android:textColor="#FBBF24" android:textSize="9sp" android:layout_marginTop="2dp"/>
