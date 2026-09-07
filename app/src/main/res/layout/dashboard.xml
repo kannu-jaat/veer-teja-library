@@ -33,8 +33,7 @@
         <RelativeLayout
             android:id="@+id/dashboardTopCard"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:transitionName="profile_card_anim">
+            android:layout_height="wrap_content">
 
             <!-- Banner -->
             <RelativeLayout
@@ -65,10 +64,11 @@
 
                     <androidx.cardview.widget.CardView
                         android:id="@+id/cvHeaderAvatar"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:layout_alignParentRight="true"
-                        app:cardCornerRadius="20dp">
+android:layout_width="40dp"
+android:layout_height="40dp"
+android:layout_alignParentRight="true"
+android:transitionName="profile_photo_anim"
+app:cardCornerRadius="20dp">
                         <ImageView
                             android:id="@+id/ivHeaderAvatar"
                             android:layout_width="match_parent"
