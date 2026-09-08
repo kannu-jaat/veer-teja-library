@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1E1B4B"> <!-- Dark Premium Purple -->
+    android:background="#1E1B4B">
 
     <!-- Top Bar -->
     <RelativeLayout
@@ -21,15 +21,15 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="serif"
             android:text="My Profile"
             android:textColor="#FFFFFF"
-            android:textSize="20sp"
+            android:textSize="22sp"
             android:textStyle="bold"
             android:layout_centerInParent="true"/>
     </RelativeLayout>
 
     <!-- Profile Card (Dark Blue) -->
-    <!-- 🔥 NEW: Added transitionName for Shared Element Animation 🔥 -->
     <RelativeLayout
         android:id="@+id/profileHeader"
         android:layout_width="match_parent"
@@ -37,7 +37,8 @@
         android:layout_below="@id/topBar"
         android:layout_margin="20dp"
         android:background="@drawable/rounded_dark_card"
-        android:padding="20dp">
+        android:padding="20dp"
+        android:transitionName="profile_card_anim">
 
         <!-- Photo & Camera Icon -->
         <RelativeLayout
@@ -49,7 +50,7 @@
                 android:layout_width="85dp"
                 android:layout_height="85dp"
                 app:cardCornerRadius="45dp"
-android:transitionName="profile_photo_anim"
+                android:transitionName="profile_photo_anim"
                 android:layout_centerInParent="true">
                 <ImageView
                     android:id="@+id/ivProfileImage"
@@ -77,14 +78,18 @@ android:transitionName="profile_photo_anim"
             android:layout_toRightOf="@id/imgContainer"
             android:layout_marginLeft="16dp"
             android:orientation="vertical">
+            
+            <!-- 🔥 PREMIUM FONT APPLIED HERE 🔥 -->
             <TextView
                 android:id="@+id/tvFullNameHeader"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:fontFamily="serif"
                 android:text="Student Name"
                 android:textColor="#FFFFFF"
-                android:textSize="20sp"
+                android:textSize="22sp"
                 android:textStyle="bold" />
+                
             <TextView
                 android:id="@+id/tvUsernameHeader"
                 android:layout_width="wrap_content"
@@ -118,29 +123,28 @@ android:transitionName="profile_photo_anim"
     </RelativeLayout>
 
     <!-- Bottom White Section -->
- <!-- Bottom White Section -->
-<!-- Isme ID lagani hai: android:id="@+id/bottomInfoSection" -->
-<LinearLayout
-    android:id="@+id/bottomInfoSection"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:layout_below="@id/profileHeader"
-    android:layout_marginTop="10dp"
-    android:background="@drawable/rounded_top_white"
-    android:orientation="vertical"
-    android:padding="24dp">
-
+    <LinearLayout
+        android:id="@+id/bottomInfoSection"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/profileHeader"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/rounded_top_white"
+        android:orientation="vertical"
+        android:padding="24dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="serif"
             android:text="Personal Information"
             android:textColor="#0F172A"
-            android:textSize="18sp"
+            android:textSize="19sp"
             android:textStyle="bold"
             android:layout_marginBottom="20dp"/>
 
-        <!-- Info Rows -->
+        <!-- Info Rows (Username Naya Joda Hai) -->
+        <include layout="@layout/row_profile_info" android:id="@+id/rowUsername" />
         <include layout="@layout/row_profile_info" android:id="@+id/rowName" />
         <include layout="@layout/row_profile_info" android:id="@+id/rowPhone" />
         <include layout="@layout/row_profile_info" android:id="@+id/rowDob" />
@@ -151,17 +155,7 @@ android:transitionName="profile_photo_anim"
             android:layout_height="0dp"
             android:layout_weight="1" />
 
-        <!-- Edit Profile & Logout -->
-        <Button
-            android:id="@+id/btnEditProfile"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:text="Edit Profile"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#4F46E5"
-            android:textAllCaps="false"
-            android:layout_marginBottom="12dp"/>
-
+        <!-- Edit Profile Hataya, Sirf Logout Bacha Hai -->
         <Button
             android:id="@+id/btnLogout"
             android:layout_width="match_parent"
