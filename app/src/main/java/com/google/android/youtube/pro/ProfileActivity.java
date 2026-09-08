@@ -35,6 +35,7 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream; // 🔥 Naya import zaroori hai
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -52,16 +53,28 @@ public class ProfileActivity extends AppCompatActivity {
     private SharedPreferences prefs;
     private String savedUsername;
 
-    // Image Picker Result Launcher
+    // Image Picker Result Launcher (🔥 Compress & Local Save Added)
     private final ActivityResultLauncher<Intent> galleryLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                     try {
                         Uri imageUri = result.getData().getData();
                         InputStream imageStream = getContentResolver().openInputStream(imageUri);
-                        Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
-                        ivProfileImage.setImageBitmap(selectedImage); // Instant local update
-                        uploadImageToCloudinary(selectedImage); // Background upload
+                        Bitmap originalImage = BitmapFactory.decodeStream(imageStream);
+                        
+                        // 1. Image Compress (Fast upload aur less memory ke liye)
+                        int maxDimension = 500;
+                        float ratio = Math.min((float) maxDimension / originalImage.getWidth(), (float) maxDimension / originalImage.getHeight());
+                        int width = Math.round(ratio * originalImage.getWidth());
+                        int height = Math.round(ratio * originalImage.getHeight());
+                        Bitmap compressedImage = Bitmap.createScaledBitmap(originalImage, width, height, true);
+
+                        // 2. Hand-to-Hand Local Update (Turant dikhega)
+                        ivProfileImage.setImageBitmap(compressedImage); 
+                        saveImageToLocalCache(compressedImage); // 🔥 Dashboard ke liye yahan local save kar rahe hain
+
+                        // 3. Background Cloudinary Upload
+                        uploadImageToCloudinary(compressedImage); 
                     } catch (Exception e) {
                         showCustomToast("Failed to load image", false);
                     }
@@ -82,7 +95,7 @@ public class ProfileActivity extends AppCompatActivity {
         setupClickListeners();
     }
 
-        private void initViews() {
+    private void initViews() {
         btnBack = findViewById(R.id.btnBack);
         ivProfileImage = findViewById(R.id.ivProfileImage);
         btnUpdatePhoto = findViewById(R.id.btnUpdatePhoto);
@@ -101,31 +114,17 @@ public class ProfileActivity extends AppCompatActivity {
         // 🔥 SLIDE-UP & FADE-IN ANIMATION 🔥
         View bottomInfoSection = findViewById(R.id.bottomInfoSection);
         View headerTextData = (View) findViewById(R.id.tvFullNameHeader).getParent();
- // Header ke text ka container
 
-        // 1. Initial State (Chhupa do aur thoda neeche kar do)
+        // 1. Initial State
         bottomInfoSection.setAlpha(0f);
         bottomInfoSection.setTranslationY(150f); 
-        
         headerTextData.setAlpha(0f);
-        headerTextData.setTranslationX(-50f); // Text halka sa left se aayega
+        headerTextData.setTranslationX(-50f); 
 
-        // 2. Animate State (Fast slide up aur fade in)
-        bottomInfoSection.animate()
-                .alpha(1f)
-                .translationY(0f)
-                .setDuration(400) // 0.4 seconds (Fast & Smooth)
-                .setStartDelay(200) // Photo udne ke beech me start hoga
-                .start();
-
-        headerTextData.animate()
-                .alpha(1f)
-                .translationX(0f)
-                .setDuration(400)
-                .setStartDelay(150)
-                .start();
+        // 2. Animate State
+        bottomInfoSection.animate().alpha(1f).translationY(0f).setDuration(400).setStartDelay(200).start();
+        headerTextData.animate().alpha(1f).translationX(0f).setDuration(400).setStartDelay(150).start();
     }
-
 
     private void setupClickListeners() {
         btnBack.setOnClickListener(v -> onBackPressed());
@@ -136,11 +135,9 @@ public class ProfileActivity extends AppCompatActivity {
         });
 
         btnEditProfile.setOnClickListener(v -> showCustomToast("Edit Information Feature Coming Soon!", true));
-
         btnLogout.setOnClickListener(v -> logoutUser());
     }
 
-    // 🔥 HELPER METHOD: Info Rows me data aur icon set karne ke liye
     private void setRowData(View row, String label, String value, int iconRes) {
         if (row != null) {
             ImageView ivIcon = row.findViewById(R.id.rowIcon);
@@ -150,6 +147,19 @@ public class ProfileActivity extends AppCompatActivity {
             if (ivIcon != null) ivIcon.setImageResource(iconRes);
             if (tvLabel != null) tvLabel.setText(label);
             if (tvValue != null) tvValue.setText((value != null && !value.isEmpty()) ? value : "Not provided");
+        }
+    }
+
+    // 🔥 Turant cache save karne ka logic (Dashboard ke liye zaroori hai)
+    private void saveImageToLocalCache(Bitmap bitmap) {
+        try {
+            File file = new File(getFilesDir(), "profile_avatar.jpg");
+            FileOutputStream fos = new FileOutputStream(file);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos); 
+            fos.flush(); 
+            fos.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -167,7 +177,6 @@ public class ProfileActivity extends AppCompatActivity {
 
         tvMemberSince.setText("Member Since: " + prefs.getString("cachedMemberSince", "--"));
 
-        // Set Bottom Rows from Cache
         setRowData(rowName, "Full Name", cachedName, android.R.drawable.ic_menu_myplaces);
         setRowData(rowPhone, "Phone Number", prefs.getString("cachedPhone", "--"), android.R.drawable.ic_menu_call);
         setRowData(rowDob, "Date of Birth", prefs.getString("cachedDob", "--"), android.R.drawable.ic_menu_today);
@@ -177,10 +186,19 @@ public class ProfileActivity extends AppCompatActivity {
         if (imgFile.exists()) {
             ivProfileImage.setImageBitmap(BitmapFactory.decodeFile(imgFile.getAbsolutePath()));
         }
+
+        // 🔥 CAMERA BUTTON TOGGLE (Cache Check)
+        String photoUpdateStatus = prefs.getString("feature_photo_update", "No");
+        if (photoUpdateStatus.equalsIgnoreCase("yes") || photoUpdateStatus.equalsIgnoreCase("true")) {
+            btnUpdatePhoto.setVisibility(View.VISIBLE);
+        } else {
+            btnUpdatePhoto.setVisibility(View.GONE);
+        }
     }
 
     // 🔥 FIREBASE FETCH & CACHE UPDATE ENGINE
     private void fetchLatestDataFromFirebase() {
+        // 1. Fetch Student Data
         DatabaseReference ref = FirebaseDatabase.getInstance().getReference("Students").child(savedUsername);
         ref.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -191,48 +209,64 @@ public class ProfileActivity extends AppCompatActivity {
                     String fullName = snapshot.child("fullName").getValue(String.class);
                     String status = snapshot.child("status").getValue(String.class);
                     String memberSince = snapshot.child("registrationTime").getValue(String.class);
-                    String phone = snapshot.child("mobile").getValue(String.class); // Firebase key: phone
-                    String dob = snapshot.child("dob").getValue(String.class);     // Firebase key: dob
-                    String address = snapshot.child("address").getValue(String.class); // Firebase key: address
+                    String phone = snapshot.child("mobile").getValue(String.class); 
+                    String dob = snapshot.child("dob").getValue(String.class);     
+                    String address = snapshot.child("address").getValue(String.class); 
 
                     if (fullName != null) {
                         tvFullNameHeader.setText(fullName);
                         editor.putString("cachedName", fullName);
                         setRowData(rowName, "Full Name", fullName, android.R.drawable.ic_menu_myplaces);
                     }
-
                     if (status != null) {
                         tvStatusBadge.setText(status);
                         if(status.equalsIgnoreCase("Approved")) tvStatusBadge.setTextColor(Color.parseColor("#10B981"));
                         else tvStatusBadge.setTextColor(Color.parseColor("#EF4444"));
                         editor.putString("cachedStatus", status);
                     }
-
                     if (memberSince != null) {
                         tvMemberSince.setText("Member Since: " + memberSince);
                         editor.putString("cachedMemberSince", memberSince);
                     }
-
                     if (phone != null) {
                         editor.putString("cachedPhone", phone);
                         setRowData(rowPhone, "Phone Number", phone, android.R.drawable.ic_menu_call);
                     }
-
                     if (dob != null) {
                         editor.putString("cachedDob", dob);
                         setRowData(rowDob, "Date of Birth", dob, android.R.drawable.ic_menu_today);
                     }
-
                     if (address != null) {
                         editor.putString("cachedAddress", address);
                         setRowData(rowAddress, "Address", address, android.R.drawable.ic_menu_mapmode);
                     }
-
-                    // Save all fresh data to Cache permanently
                     editor.apply(); 
                 }
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
+
+        // 2. 🔥 Fetch AppFeatures (Live Button Toggle Control)
+        DatabaseReference featureRef = FirebaseDatabase.getInstance().getReference("AppFeatures");
+        featureRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    String photoUpdate = snapshot.child("PhotoUpdate").getValue(String.class);
+                    if (photoUpdate != null) {
+                        prefs.edit().putString("feature_photo_update", photoUpdate).apply(); 
+                        
+                        // Live button hide/show based on Firebase
+                        if (photoUpdate.equalsIgnoreCase("yes") || photoUpdate.equalsIgnoreCase("true")) {
+                            btnUpdatePhoto.setVisibility(View.VISIBLE);
+                        } else {
+                            btnUpdatePhoto.setVisibility(View.GONE);
+                        }
+                    }
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
