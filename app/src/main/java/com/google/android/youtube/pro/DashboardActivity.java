@@ -225,7 +225,8 @@ private static final int STATE_MY_SEAT = 5;
         };
 
         btnMySeatGrid.setOnClickListener(comingSoonListener);
-        btnNoticesGrid.setOnClickListener(comingSoonListener);
+        btnMySeatGrid.setOnClickListener(v -> handleNavigation(STATE_MY_SEAT));
+
         btnNotifications.setOnClickListener(comingSoonListener);
         cvLatestNotice.setOnClickListener(comingSoonListener);
     }
@@ -457,6 +458,9 @@ private static final int STATE_MY_SEAT = 5;
             openFragmentWithAnimation(new FeesFragment());
         } else if (targetState == STATE_RULES) { 
             openFragmentWithAnimation(new RulesFragment());
+            } else if (targetState == STATE_MY_SEAT) {
+    openFragmentWithAnimation(new MySeatFragment());
+    
         } else if (targetState == STATE_MORE) {
             showCustomToast("More Settings Menu Coming Soon", false);
         }
