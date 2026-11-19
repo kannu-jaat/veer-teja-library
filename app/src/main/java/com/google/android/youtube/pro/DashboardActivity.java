@@ -85,6 +85,8 @@ public class DashboardActivity extends FragmentActivity {
     private static final int STATE_PAYMENTS = 2;
     private static final int STATE_MORE = 3;
     private static final int STATE_RULES = 4;
+private static final int STATE_MY_SEAT = 5;
+
     private int currentState = STATE_DASHBOARD;
 
     // Scanner block flag
